@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0f2417">
+<title>Dollar Clicker</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+  html, body { margin: 0; height: 100%; background: radial-gradient(circle at 50% 0%, #1d4a2c, #0f2417 70%); color: #fff; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; touch-action: manipulation; }
+  #app { display: flex; flex-direction: column; height: 100%; max-width: 480px; margin: 0 auto; padding: 16px; }
+  .top { text-align: center; }
+  #score { font-size: 48px; font-weight: 800; line-height: 1.1; color: #b9f6ca; text-shadow: 0 2px 12px rgba(0,0,0,.4); }
+  #cps { opacity: .75; font-size: 14px; margin-top: 4px; }
+  .center { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; min-height: 0; }
+
+  /* Купюра */
+  #bill {
+    position: relative; width: min(82vw, 360px); aspect-ratio: 2.3 / 1; border: 3px solid #2a6b38; border-radius: 10px; padding: 0;
+    background: linear-gradient(135deg, #a5d6a7 0%, #6fbf73 45%, #4a9a55 100%);
+    box-shadow: 0 12px 30px rgba(0,0,0,.45), inset 0 0 0 5px rgba(255,255,255,.18);
+    transition: transform .06s; cursor: pointer; color: #1b5e20; font-family: Georgia, serif;
+  }
+  #bill::before { content: ""; position: absolute; inset: 9px; border: 2px dashed rgba(27,94,32,.55); border-radius: 6px; }
+  #bill:active, #bill.press { transform: scale(.94) rotate(-1deg); }
+  .oval { position: absolute; left: 50%; top: 50%; width: 38%; aspect-ratio: 1 / 1.05; transform: translate(-50%, -50%); border-radius: 50%; border: 3px solid #2a6b38; background: radial-gradient(circle, #c8e6c9, #81c784); display: flex; align-items: center; justify-content: center; font-size: min(18vw, 80px); font-weight: 700; }
+  .num { position: absolute; font-weight: 800; font-size: 22px; }
+  .tl { left: 16px; top: 12px; } .br { right: 16px; bottom: 12px; }
+  .tr { right: 16px; top: 12px; } .bl { left: 16px; bottom: 12px; }
+  .stars { position: absolute; left: 0; right: 0; bottom: 14%; text-align: center; font-size: 11px; letter-spacing: 6px; opacity: .6; }
+
+  .float { position: absolute; font-weight: 800; font-size: 24px; color: #fff59d; text-shadow: 0 1px 6px rgba(0,0,0,.6); pointer-events: none; animation: up .8s ease-out forwards; }
+  @keyframes up { to { transform: translateY(-90px); opacity: 0; } }
+
+  /* Нижня панель */
+  .bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: env(safe-area-inset-bottom); }
+  .bar button { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 2px; border: none; border-radius: 14px; font-size: 12px; font-weight: 800; }
+  .bi { font-size: 22px; line-height: 1.2; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; min-height: 36px; }
+  #update { display: none; border: none; border-radius: 20px; padding: 8px 16px; background: #ff9800; color: #2b1800; font-size: 14px; font-weight: 800; animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+  #open-lb { border: none; border-radius: 20px; padding: 8px 16px; background: #a5d6a7; color: #0d3b17; font-size: 14px; font-weight: 800; }
+  #open-lb:active { filter: brightness(.9); }
+  .bar button:active { filter: brightness(.9); }
+  #open-up   { background: #81d4fa; color: #01314a; }
+  #open-shop { background: #ffd54f; color: #3e2f00; }
+  #open-prof { background: #ce93d8; color: #2d0a35; }
+  .dot { display: none; position: absolute; top: -6px; right: -6px; min-width: 22px; height: 22px; border-radius: 11px; background: #e53935; color: #fff; font-size: 12px; line-height: 22px; padding: 0 6px; }
+
+  /* Вікна */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: flex-end; justify-content: center; z-index: 10; }
+  .overlay.open { display: flex; }
+  .sheet { width: 100%; max-width: 480px; max-height: 85%; background: #14301f; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; animation: slide .22s ease-out; }
+  @keyframes slide { from { transform: translateY(100%); } to { transform: none; } }
+  .sheet-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 18px 8px; }
+  .sheet-head h2 { margin: 0; font-size: 22px; }
+  .close { border: none; background: #2d5a3d; color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; }
+  .balance { padding: 0 18px 10px; color: #b9f6ca; font-weight: 700; }
+  .list { overflow-y: auto; padding: 0 14px calc(16px + env(safe-area-inset-bottom)); display: grid; gap: 8px; -webkit-overflow-scrolling: touch; }
+  .item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border: none; border-radius: 14px; background: #1f4a30; color: #fff; text-align: left; font-size: 15px; }
+  .item:disabled { opacity: .45; }
+  .item:not(:disabled):active { background: #2a6340; }
+  .item.owned, .item.owned:disabled { opacity: 1; background: #2e7d32; }
+  .item.owned .price { color: #c8e6c9; }
+  .ico { font-size: 30px; width: 40px; text-align: center; }
+  .info { flex: 1; min-width: 0; }
+  .info b { display: block; font-size: 16px; }
+  .info small { display: block; opacity: .75; font-size: 12px; margin-top: 2px; }
+  .price { font-weight: 800; color: #ffd54f; white-space: nowrap; }
+  .own { font-size: 12px; opacity: .8; margin-top: 2px; }
+
+  /* Лідери */
+  .nick { display: flex; gap: 8px; padding: 0 14px 10px; }
+  .nick input { flex: 1; min-width: 0; padding: 10px 12px; border: 2px solid #2d5a3d; border-radius: 12px; background: #0f2417; color: #fff; font-size: 16px; -webkit-user-select: text; user-select: text; }
+  .nick button { border: none; border-radius: 12px; padding: 0 18px; background: #ffd54f; color: #3e2f00; font-weight: 800; font-size: 15px; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #1f4a30; border-radius: 12px; }
+  .row.me { background: #2e7d32; }
+  .rk { width: 34px; text-align: center; font-weight: 800; font-size: 18px; }
+  .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .sc { font-weight: 800; color: #ffd54f; white-space: nowrap; }
+  .empty { text-align: center; padding: 30px 20px; opacity: .75; line-height: 1.5; }
+  .hint { text-align: center; font-size: 12px; opacity: .75; padding: 0 0 4px; }
+
+  /* Резервна копія */
+  .backup { padding: 14px 14px 0; }
+  .backup .coll-h { padding: 0 4px 8px; }
+  .backup textarea { width: 100%; height: 80px; padding: 10px 12px; border: 2px solid #2d5a3d; border-radius: 12px; background: #0f2417; color: #fff; font-size: 13px; font-family: monospace; resize: none; -webkit-user-select: text; user-select: text; }
+  .brow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .brow button { border: none; border-radius: 12px; padding: 12px 6px; background: #2d5a3d; color: #fff; font-size: 14px; font-weight: 700; }
+  .brow button:active { background: #3a7350; }
+  .ver { text-align: center; font-size: 11px; opacity: .5; padding: 14px 0 0; }
+
+  /* Профіль */
+  .scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .prof-head { text-align: center; padding: 4px 18px 12px; }
+  .avatar { font-size: 60px; line-height: 1.1; }
+  .pname { font-weight: 800; font-size: 20px; }
+  .ptitle { color: #ffd54f; font-size: 14px; margin-top: 2px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 14px 12px; }
+  .stat { background: #1f4a30; border-radius: 12px; padding: 10px 12px; }
+  .stat small { display: block; opacity: .7; font-size: 11px; }
+  .stat b { font-size: 16px; }
+  .coll-h { padding: 4px 18px 8px; font-weight: 700; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 0 14px; }
+  .cell { background: #1f4a30; border-radius: 12px; text-align: center; padding: 10px 2px; }
+  .cell .e { font-size: 30px; }
+  .cell small { display: block; font-size: 10px; margin-top: 2px; opacity: .85; }
+  .cell.locked { opacity: .35; filter: grayscale(1); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar"><button id="update">🔄 Оновити</button><button id="open-lb" data-open="ov-lb">🏆 Лідери</button></div>
+  <div class="top">
+    <div id="score">$1</div>
+    <div id="cps"></div>
+  </div>
+  <div class="center">
+    <button id="bill" aria-label="Клік по купюрі">
+      <span class="num tl">100</span><span class="num tr">100</span>
+      <span class="num bl">100</span><span class="num br">100</span>
+      <span class="oval">$</span>
+      <span class="stars">★ ★ ★ ★ ★</span>
+    </button>
+  </div>
+  <div class="bar">
+    <button id="open-up"   data-open="ov-up"><span class="bi">⚡</span>Покращення<span class="dot" id="dot-up"></span></button>
+    <button id="open-shop" data-open="ov-shop"><span class="bi">🛒</span>Магазин<span class="dot" id="dot-shop"></span></button>
+    <button id="open-prof" data-open="ov-prof"><span class="bi">👤</span>Профіль</button>
+  </div>
+</div>
+
+<!-- Покращення -->
+<div class="overlay" id="ov-up">
+  <div class="sheet">
+    <div class="sheet-head"><h2>⚡ Покращення</h2><button class="close">✕</button></div>
+    <div class="balance"></div>
+    <div class="list" id="list-up"></div>
+  </div>
+</div>
+
+<!-- Магазин -->
+<div class="overlay" id="ov-shop">
+  <div class="sheet">
+    <div class="sheet-head"><h2>🛒 Магазин</h2><button class="close">✕</button></div>
+    <div class="balance"></div>
+    <div class="list" id="list-shop"></div>
+  </div>
+</div>
+
+<!-- Профіль -->
+<div class="overlay" id="ov-prof">
+  <div class="sheet">
+    <div class="sheet-head"><h2>👤 Профіль</h2><button class="close">✕</button></div>
+    <div class="scroll">
+      <div class="prof-head">
+        <div class="avatar" id="avatar">😎</div>
+        <div class="pname" id="pname">Гравець</div>
+        <div class="ptitle" id="ptitle"></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><small>Баланс</small><b id="st-bal"></b></div>
+        <div class="stat"><small>Усього зароблено</small><b id="st-total"></b></div>
+        <div class="stat"><small>За клік</small><b id="st-click"></b></div>
+        <div class="stat"><small>За секунду</small><b id="st-sec"></b></div>
+      </div>
+      <div class="coll-h" id="coll-h"></div>
+      <div class="grid" id="grid"></div>
+      <div class="backup">
+        <div class="coll-h">💾 Резервна копія прогресу</div>
+        <textarea id="code" placeholder="Тут з'явиться код збереження. Щоб завантажити прогрес, вставте код сюди." spellcheck="false" autocomplete="off"></textarea>
+        <div class="brow">
+          <button id="code-save">📋 Зберегти код</button>
+          <button id="code-load">📥 Завантажити код</button>
+        </div>
+        <div class="hint" id="code-msg"></div>
+        <div class="ver" id="ver"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Лідери -->
+<div class="overlay" id="ov-lb">
+  <div class="sheet">
+    <div class="sheet-head"><h2>🏆 Лідери</h2><button class="close">✕</button></div>
+    <div class="nick">
+      <input id="nick" maxlength="16" placeholder="Ваш нікнейм" autocomplete="off">
+      <button id="nick-save">OK</button>
+    </div>
+    <div class="list" id="list-lb"></div>
+  </div>
+</div>
+
+<script>
+const APP_VERSION = 1; // збільшуйте при кожному оновленні
+const KEY = 'clicker_save_v2';
+const DEFAULT = { score: 1, total: 0, mult: 0, auto: 0 };
+let s = { ...DEFAULT, owned: [] };
+try {
+  const saved = JSON.parse(localStorage.getItem(KEY)) || {};
+  s.score = saved.score ?? DEFAULT.score;
+  s.total = saved.total || 0;
+  s.mult = saved.mult || 0;
+  s.auto = saved.auto || 0;
+  s.owned = Array.isArray(saved.owned) ? saved.owned : [];
+  s.name = typeof saved.name === 'string' ? saved.name : '';
+  s.uid = typeof saved.uid === 'string' ? saved.uid : '';
+} catch (e) {}
+
+if (!s.uid) s.uid = 'p' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+
+const $ = id => document.getElementById(id);
+const fmt = n => {
+  n = Math.floor(n);
+  if (n < 1e4) return '$' + n.toLocaleString('en-US');
+  const u = ['', 'K', 'M', 'B', 'T', 'Q'];
+  let i = 0, v = n;
+  while (v >= 1000 && i < u.length - 1) { v /= 1000; i++; }
+  return '$' + v.toFixed(v < 100 ? 2 : 1) + u[i];
+};
+
+/* ---------- Покращення (можна купувати багато разів) ---------- */
+const UPGRADES = [
+  { id: 'mult', ico: '✖️', name: 'Множник за клік',
+    desc: () => `Клік ×${s.mult + 1} → ×${s.mult + 2}`,
+    own: () => s.mult,
+    cost: () => Math.floor(25 * Math.pow(1.6, s.mult)),
+    buy: () => s.mult++ },
+  { id: 'auto', ico: '🤖', name: 'Автоклікер',
+    desc: () => '+$1 за секунду',
+    own: () => s.auto,
+    cost: () => Math.floor(50 * Math.pow(1.55, s.auto)),
+    buy: () => s.auto++ },
+];
+
+/* ---------- Магазин (кожна річ купується один раз) ---------- */
+const SHOP = [
+  { id: 'phone',  ico: '📱', name: 'Телефон',    desc: 'Новенький смартфон',         price: 300 },
+  { id: 'laptop', ico: '💻', name: 'Ноутбук',    desc: 'Працювати можна звідусіль',  price: 1000 },
+  { id: 'watch',  ico: '⌚', name: 'Годинник',   desc: 'Швейцарський, дуже дорогий', price: 3000 },
+  { id: 'house',  ico: '🏠', name: 'Дім',        desc: 'Затишний будинок із садом',  price: 10000 },
+  { id: 'car',    ico: '🏎️', name: 'Машина',     desc: 'Спорткар з відкритим верхом', price: 25000 },
+  { id: 'heli',   ico: '🚁', name: 'Гвинтокрил', desc: 'Летіти над пробками',        price: 250000 },
+  { id: 'plane',  ico: '✈️', name: 'Літак',      desc: 'Власний приватний літак',    price: 1000000 },
+  { id: 'ship',   ico: '🚢', name: 'Корабель',   desc: 'Круїзний лайнер для друзів', price: 5000000 },
+  { id: 'island', ico: '🏝️', name: 'Острів',     desc: 'Приватний острів у океані',  price: 25000000 },
+  { id: 'rocket', ico: '🚀', name: 'Ракета',     desc: 'Політ на Місяць',            price: 100000000 },
+];
+
+const perClick = () => 1 + s.mult;
+const perSec   = () => s.auto;
+const isOwned  = id => s.owned.includes(id);
+
+function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
+
+/* ---------- Будуємо інтерфейс один раз ---------- */
+const upEls = {};
+UPGRADES.forEach(it => {
+  const b = document.createElement('button');
+  b.className = 'item';
+  b.innerHTML = `<span class="ico">${it.ico}</span><span class="info"><b>${it.name}</b><small class="desc"></small><div class="own"></div></span><span class="price"></span>`;
+  b.onclick = () => {
+    const c = it.cost();
+    if (s.score >= c) { s.score -= c; it.buy(); vibrate(15); render(); save(); }
+  };
+  $('list-up').appendChild(b);
+  upEls[it.id] = { b, desc: b.querySelector('.desc'), own: b.querySelector('.own'), price: b.querySelector('.price') };
+});
+
+const shopEls = {};
+const cellEls = {};
+SHOP.forEach(it => {
+  const b = document.createElement('button');
+  b.className = 'item';
+  b.innerHTML = `<span class="ico">${it.ico}</span><span class="info"><b>${it.name}</b><small>${it.desc}</small></span><span class="price"></span>`;
+  b.onclick = () => {
+    if (isOwned(it.id) || s.score < it.price) return;
+    s.score -= it.price; s.owned.push(it.id); vibrate(25); render(); save();
+  };
+  $('list-shop').appendChild(b);
+  shopEls[it.id] = { b, price: b.querySelector('.price') };
+
+  const c = document.createElement('div');
+  c.className = 'cell locked';
+  c.innerHTML = `<div class="e">🔒</div><small>???</small>`;
+  $('grid').appendChild(c);
+  cellEls[it.id] = { c, e: c.querySelector('.e'), n: c.querySelector('small') };
+});
+
+const rankFor = n => n < 1 ? 'Новачок' : n < 3 ? 'Підприємець' : n < 6 ? 'Бізнесмен' : n < 9 ? 'Мільйонер' : 'Магнат';
+const showDot = (el, n) => { el.style.display = n ? 'block' : 'none'; el.textContent = n; };
+
+function render() {
+  $('score').textContent = fmt(s.score);
+  $('cps').textContent = `+${fmt(perClick())} за клік` + (perSec() ? ` · +${fmt(perSec())} за сек` : '');
+  document.querySelectorAll('.balance').forEach(el => el.textContent = 'Ваш баланс: ' + fmt(s.score));
+
+  let upAfford = 0;
+  UPGRADES.forEach(it => {
+    const e = upEls[it.id], c = it.cost();
+    e.desc.textContent = it.desc();
+    e.own.textContent = it.id === 'auto' ? 'Куплено: ' + it.own() : '';
+    e.price.textContent = fmt(c);
+    e.b.disabled = s.score < c;
+    if (s.score >= c) upAfford++;
+  });
+  showDot($('dot-up'), upAfford);
+
+  let shopAfford = 0;
+  SHOP.forEach(it => {
+    const e = shopEls[it.id], have = isOwned(it.id);
+    e.b.classList.toggle('owned', have);
+    e.price.textContent = have ? '✓ Куплено' : fmt(it.price);
+    e.b.disabled = have || s.score < it.price;
+    if (!have && s.score >= it.price) shopAfford++;
+    const cell = cellEls[it.id];
+    cell.c.classList.toggle('locked', !have);
+    cell.e.textContent = have ? it.ico : '🔒';
+    cell.n.textContent = have ? it.name : '???';
+  });
+  showDot($('dot-shop'), shopAfford);
+
+  const n = s.owned.length;
+  $('ptitle').textContent = rankFor(n);
+  $('pname').textContent = s.name || 'Гравець';
+  $('st-bal').textContent = fmt(s.score);
+  $('st-total').textContent = fmt(s.total);
+  $('st-click').textContent = fmt(perClick());
+  $('st-sec').textContent = fmt(perSec());
+  $('coll-h').textContent = `Колекція: ${n}/${SHOP.length}`;
+}
+
+function pop(x, y, text) {
+  const area = document.querySelector('.center');
+  const c = area.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'float';
+  el.textContent = text;
+  el.style.left = (x - c.left - 20) + 'px';
+  el.style.top = (y - c.top - 20) + 'px';
+  area.appendChild(el);
+  setTimeout(() => el.remove(), 800);
+}
+
+$('bill').addEventListener('pointerdown', e => {
+  const g = perClick();
+  s.score += g; s.total += g;
+  pop(e.clientX, e.clientY, '+' + fmt(g));
+  vibrate(8);
+  render();
+});
+
+/* ---------- Таблиця лідерів (Firebase Realtime Database) ---------- */
+// Вставте сюди адресу бази, наприклад: 'https://my-game-default-rtdb.europe-west1.firebasedatabase.app'
+const LB_URL = 'https://cliker-b17da-default-rtdb.firebaseio.com';
+
+let lbSent = -1;
+async function lbSubmit() {
+  if (!LB_URL || !s.name) return;
+  const total = Math.floor(s.total);
+  const r = await fetch(`${LB_URL}/scores/${s.uid}.json`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: s.name, total, items: s.owned.length, t: Date.now() })
+  });
+  if (r.ok) lbSent = total;
+}
+
+async function lbRefresh() {
+  const box = $('list-lb');
+  const msg = text => {
+    box.innerHTML = '';
+    const d = document.createElement('div');
+    d.className = 'empty';
+    d.textContent = text;
+    box.appendChild(d);
+  };
+  if (!LB_URL) return msg('Таблицю лідерів ще не підключено до сервера.');
+  msg('Завантаження…');
+  try {
+    await lbSubmit();
+    const r = await fetch(`${LB_URL}/scores.json?orderBy=%22total%22&limitToLast=20`);
+    if (!r.ok) throw new Error(r.status);
+    const data = (await r.json()) || {};
+    const rows = Object.entries(data).map(([id, v]) => ({ id, ...v })).sort((a, b) => b.total - a.total);
+    box.innerHTML = '';
+    if (!s.name) {
+      const h = document.createElement('div');
+      h.className = 'hint';
+      h.textContent = 'Введіть нікнейм, щоб потрапити в рейтинг';
+      box.appendChild(h);
+    }
+    if (!rows.length) return msg('Поки що нікого немає. Будьте першим!');
+    rows.forEach((v, i) => {
+      const d = document.createElement('div');
+      d.className = 'row' + (v.id === s.uid ? ' me' : '');
+      const rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = ['🥇', '🥈', '🥉'][i] || String(i + 1);
+      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = String(v.name || '?').slice(0, 16);
+      const sc = document.createElement('span'); sc.className = 'sc'; sc.textContent = fmt(Number(v.total) || 0);
+      d.append(rk, nm, sc);
+      box.appendChild(d);
+    });
+  } catch (e) {
+    msg('Не вдалося завантажити. Перевірте інтернет.');
+  }
+}
+
+$('nick').value = s.name;
+$('nick-save').onclick = () => {
+  const v = $('nick').value.trim().slice(0, 16);
+  if (v.length < 2) { $('nick').focus(); return; }
+  s.name = v; save(); render(); lbRefresh();
+};
+setInterval(() => {
+  if (LB_URL && s.name && Math.floor(s.total) !== lbSent) lbSubmit().catch(() => {});
+}, 30000);
+
+/* ---------- Оновлення гри ---------- */
+$('ver').textContent = 'Версія ' + APP_VERSION;
+let updateReady = 0;
+async function checkUpdate() {
+  if (location.protocol === 'file:') return;
+  try {
+    const r = await fetch(location.pathname + '?_=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) return;
+    const m = (await r.text()).match(/const APP_VERSION = (\d+);/);
+    if (m && +m[1] > APP_VERSION) { updateReady = +m[1]; $('update').style.display = 'inline-block'; }
+  } catch (e) {}
+}
+$('update').onclick = () => { save(); location.href = location.pathname + '?v=' + updateReady; };
+setTimeout(checkUpdate, 3000);
+setInterval(checkUpdate, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdate(); });
+
+/* ---------- Код збереження ---------- */
+function makeCode() {
+  const o = { v: 1, score: s.score, total: s.total, mult: s.mult, auto: s.auto, owned: s.owned, name: s.name, uid: s.uid };
+  return 'DC1-' + btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+}
+function applyCode(str) {
+  str = str.trim();
+  if (!str.startsWith('DC1-')) throw new Error('format');
+  const o = JSON.parse(decodeURIComponent(escape(atob(str.slice(4)))));
+  const num = x => (Number.isFinite(x) && x >= 0) ? x : 0;
+  s.score = num(o.score);
+  s.total = num(o.total);
+  s.mult = Math.floor(num(o.mult));
+  s.auto = Math.floor(num(o.auto));
+  s.owned = Array.isArray(o.owned) ? o.owned.filter(id => SHOP.some(i => i.id === id)) : [];
+  s.name = typeof o.name === 'string' ? o.name.slice(0, 16) : '';
+  if (typeof o.uid === 'string' && /^[A-Za-z0-9_-]{4,64}$/.test(o.uid)) s.uid = o.uid;
+  $('nick').value = s.name;
+  save(); render();
+}
+$('code-save').onclick = async () => {
+  const code = makeCode(), ta = $('code');
+  ta.value = code;
+  let ok = false;
+  try { await navigator.clipboard.writeText(code); ok = true; }
+  catch (e) { try { ta.focus(); ta.select(); ok = document.execCommand('copy'); } catch (e2) {} }
+  $('code-msg').textContent = ok ? '✅ Код скопійовано. Збережіть його в нотатках.' : 'Скопіюйте код вручну з поля вище.';
+};
+$('code-load').onclick = () => {
+  const v = $('code').value;
+  if (!v.trim()) { $('code-msg').textContent = 'Спочатку вставте код у поле вище.'; return; }
+  if (!confirm('Замінити поточний прогрес збереженим кодом?')) return;
+  try { applyCode(v); $('code-msg').textContent = '✅ Прогрес завантажено!'; }
+  catch (e) { $('code-msg').textContent = '❌ Код не підійшов. Перевірте, чи скопійовано його повністю.'; }
+};
+
+/* ---------- Вікна ---------- */
+document.querySelectorAll('[data-open]').forEach(b => {
+  b.onclick = () => {
+    $(b.dataset.open).classList.add('open');
+    render();
+    if (b.dataset.open === 'ov-lb') lbRefresh();
+  };
+});
+document.querySelectorAll('.overlay').forEach(o => {
+  o.addEventListener('click', e => {
+    if (e.target === o || e.target.closest('.close')) o.classList.remove('open');
+  });
+});
+
+setInterval(() => {
+  const g = perSec() / 10;
+  if (g > 0) { s.score += g; s.total += g; render(); }
+}, 100);
+setInterval(save, 3000);
+document.addEventListener('visibilitychange', save);
+
+render();
+</script>
+</body>
+</html>
