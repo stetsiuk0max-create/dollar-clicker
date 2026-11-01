@@ -75,6 +75,9 @@
   .nick button { border: none; border-radius: 12px; padding: 0 18px; background: #ffd54f; color: #3e2f00; font-weight: 800; font-size: 15px; }
   .row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #1f4a30; border-radius: 12px; }
   .row.me { background: #2e7d32; }
+  .row { cursor: pointer; }
+  .row:active { filter: brightness(1.15); }
+  .chev { opacity: .5; font-size: 22px; line-height: 1; }
   .rk { width: 34px; text-align: center; font-weight: 800; font-size: 18px; }
   .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
   .sc { font-weight: 800; color: #ffd54f; white-space: nowrap; }
@@ -180,6 +183,29 @@
   </div>
 </div>
 
+<!-- Профіль гравця -->
+<div class="overlay" id="ov-player" style="z-index: 11">
+  <div class="sheet">
+    <div class="sheet-head"><h2>👤 Профіль гравця</h2><button class="close">✕</button></div>
+    <div class="scroll">
+      <div class="prof-head">
+        <div class="avatar" id="pl-avatar">🙂</div>
+        <div class="pname" id="pl-name"></div>
+        <div class="ptitle" id="pl-title"></div>
+        <div class="hint" id="pl-rank"></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><small>Усього зароблено</small><b id="pl-total"></b></div>
+        <div class="stat"><small>Речей куплено</small><b id="pl-items"></b></div>
+        <div class="stat"><small>За клік</small><b id="pl-click"></b></div>
+        <div class="stat"><small>За секунду</small><b id="pl-sec"></b></div>
+      </div>
+      <div class="coll-h" id="pl-coll"></div>
+      <div class="grid" id="pl-grid"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Лідери -->
 <div class="overlay" id="ov-lb">
   <div class="sheet">
@@ -193,7 +219,7 @@
 </div>
 
 <script>
-const APP_VERSION = 1; // збільшуйте при кожному оновленні
+const APP_VERSION = 2; // збільшуйте при кожному оновленні
 const KEY = 'clicker_save_v2';
 const DEFAULT = { score: 1, total: 0, mult: 0, auto: 0 };
 let s = { ...DEFAULT, owned: [] };
@@ -289,7 +315,10 @@ SHOP.forEach(it => {
   cellEls[it.id] = { c, e: c.querySelector('.e'), n: c.querySelector('small') };
 });
 
-const rankFor = n => n < 1 ? 'Новачок' : n < 3 ? 'Підприємець' : n < 6 ? 'Бізнесмен' : n < 9 ? 'Мільйонер' : 'Магнат';
+const TITLES = ['Новачок', 'Підприємець', 'Бізнесмен', 'Мільйонер', 'Магнат'];
+const AVATARS = ['🙂', '😎', '🤵', '🤑', '👑'];
+const rankIdx = n => n < 1 ? 0 : n < 3 ? 1 : n < 6 ? 2 : n < 9 ? 3 : 4;
+const rankFor = n => TITLES[rankIdx(n)];
 const showDot = (el, n) => { el.style.display = n ? 'block' : 'none'; el.textContent = n; };
 
 function render() {
@@ -324,6 +353,7 @@ function render() {
 
   const n = s.owned.length;
   $('ptitle').textContent = rankFor(n);
+  $('avatar').textContent = AVATARS[rankIdx(n)];
   $('pname').textContent = s.name || 'Гравець';
   $('st-bal').textContent = fmt(s.score);
   $('st-total').textContent = fmt(s.total);
@@ -356,16 +386,17 @@ $('bill').addEventListener('pointerdown', e => {
 // Вставте сюди адресу бази, наприклад: 'https://my-game-default-rtdb.europe-west1.firebasedatabase.app'
 const LB_URL = 'https://cliker-b17da-default-rtdb.firebaseio.com';
 
-let lbSent = -1;
+let lbSent = '';
+const lbSig = () => Math.floor(s.total) + '|' + s.owned.length + '|' + s.mult + '|' + s.auto;
 async function lbSubmit() {
   if (!LB_URL || !s.name) return;
-  const total = Math.floor(s.total);
+  const total = Math.floor(s.total), sig = lbSig();
   const r = await fetch(`${LB_URL}/scores/${s.uid}.json`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: s.name, total, items: s.owned.length, t: Date.now() })
+    body: JSON.stringify({ name: s.name, total, items: s.owned.length, owned: s.owned, click: perClick(), sec: perSec(), t: Date.now() })
   });
-  if (r.ok) lbSent = total;
+  if (r.ok) lbSent = sig;
 }
 
 async function lbRefresh() {
@@ -386,12 +417,10 @@ async function lbRefresh() {
     const data = (await r.json()) || {};
     const rows = Object.entries(data).map(([id, v]) => ({ id, ...v })).sort((a, b) => b.total - a.total);
     box.innerHTML = '';
-    if (!s.name) {
-      const h = document.createElement('div');
-      h.className = 'hint';
-      h.textContent = 'Введіть нікнейм, щоб потрапити в рейтинг';
-      box.appendChild(h);
-    }
+    const h = document.createElement('div');
+    h.className = 'hint';
+    h.textContent = s.name ? 'Торкніться гравця, щоб відкрити його профіль' : 'Введіть нікнейм, щоб потрапити в рейтинг';
+    box.appendChild(h);
     if (!rows.length) return msg('Поки що нікого немає. Будьте першим!');
     rows.forEach((v, i) => {
       const d = document.createElement('div');
@@ -399,12 +428,50 @@ async function lbRefresh() {
       const rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = ['🥇', '🥈', '🥉'][i] || String(i + 1);
       const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = String(v.name || '?').slice(0, 16);
       const sc = document.createElement('span'); sc.className = 'sc'; sc.textContent = fmt(Number(v.total) || 0);
-      d.append(rk, nm, sc);
+      const ch = document.createElement('span'); ch.className = 'chev'; ch.textContent = '›';
+      d.append(rk, nm, sc, ch);
+      d.onclick = () => showPlayer(v, i + 1);
       box.appendChild(d);
     });
   } catch (e) {
     msg('Не вдалося завантажити. Перевірте інтернет.');
   }
+}
+
+function showPlayer(v, rank) {
+  const toList = x => (Array.isArray(x) ? x : (x && typeof x === 'object' ? Object.values(x) : []))
+    .filter(id => SHOP.some(i => i.id === id));
+  const num = x => (Number.isFinite(Number(x)) && Number(x) >= 0) ? Number(x) : 0;
+  const hasList = v.owned !== undefined;
+  const owned = toList(v.owned);
+  const count = hasList ? owned.length : Math.min(num(v.items), SHOP.length);
+  $('pl-name').textContent = String(v.name || '?').slice(0, 16);
+  $('pl-title').textContent = rankFor(count);
+  $('pl-avatar').textContent = AVATARS[rankIdx(count)];
+  $('pl-rank').textContent = (['🥇', '🥈', '🥉'][rank - 1] || '') + ' ' + rank + ' місце в рейтингу';
+  $('pl-total').textContent = fmt(num(v.total));
+  $('pl-items').textContent = count + '/' + SHOP.length;
+  $('pl-click').textContent = fmt(v.click === undefined ? 1 : num(v.click));
+  $('pl-sec').textContent = fmt(num(v.sec));
+  const grid = $('pl-grid');
+  grid.innerHTML = '';
+  if (!hasList) {
+    $('pl-coll').textContent = 'Колекція з\'явиться, коли гравець оновить гру';
+    grid.style.display = 'none';
+  } else {
+    $('pl-coll').textContent = `Колекція: ${count}/${SHOP.length}`;
+    grid.style.display = '';
+    SHOP.forEach(it => {
+      const have = owned.includes(it.id);
+      const c = document.createElement('div');
+      c.className = 'cell' + (have ? '' : ' locked');
+      const e = document.createElement('div'); e.className = 'e'; e.textContent = have ? it.ico : '🔒';
+      const n = document.createElement('small'); n.textContent = have ? it.name : '???';
+      c.append(e, n);
+      grid.appendChild(c);
+    });
+  }
+  $('ov-player').classList.add('open');
 }
 
 $('nick').value = s.name;
@@ -414,7 +481,7 @@ $('nick-save').onclick = () => {
   s.name = v; save(); render(); lbRefresh();
 };
 setInterval(() => {
-  if (LB_URL && s.name && Math.floor(s.total) !== lbSent) lbSubmit().catch(() => {});
+  if (LB_URL && s.name && lbSig() !== lbSent) lbSubmit().catch(() => {});
 }, 30000);
 
 /* ---------- Оновлення гри ---------- */
