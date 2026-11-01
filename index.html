@@ -36,7 +36,7 @@
   .bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: env(safe-area-inset-bottom); }
   .bar button { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 2px; border: none; border-radius: 14px; font-size: 12px; font-weight: 800; }
   .bi { font-size: 22px; line-height: 1.2; }
-  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; min-height: 36px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; min-height: 36px; }
   #update { display: none; border: none; border-radius: 20px; padding: 8px 16px; background: #ff9800; color: #2b1800; font-size: 14px; font-weight: 800; animation: pulse 1.6s infinite; }
   @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
   #open-lb { border: none; border-radius: 20px; padding: 8px 16px; background: #a5d6a7; color: #0d3b17; font-size: 14px; font-weight: 800; }
@@ -85,6 +85,18 @@
   .av-edit input { width: 90px; text-align: center; font-size: 28px; padding: 6px; border: 2px solid #2d5a3d; border-radius: 12px; background: #0f2417; color: #fff; -webkit-user-select: text; user-select: text; }
   .av-edit button { border: none; border-radius: 12px; padding: 12px 14px; background: #2d5a3d; color: #fff; font-size: 14px; font-weight: 700; }
   .av-edit .hint { flex-basis: 100%; text-align: center; }
+  .tb-left { display: flex; gap: 8px; align-items: center; }
+  .tb-right { display: flex; gap: 8px; align-items: center; margin-left: auto; }
+  #open-news { position: relative; border: none; border-radius: 20px; padding: 8px 16px; background: #81d4fa; color: #01314a; font-size: 14px; font-weight: 800; }
+  #open-news:active { filter: brightness(.9); }
+  #open-news .dot { top: -6px; right: -4px; }
+  .news-item { background: #1f4a30; border-radius: 14px; padding: 12px 14px; }
+  .news-item.fresh { box-shadow: inset 0 0 0 2px #ffd54f; }
+  .news-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .news-head b { font-size: 16px; }
+  .news-date { font-size: 12px; opacity: .65; white-space: nowrap; }
+  .news-new { display: inline-block; background: #ffd54f; color: #3e2f00; font-size: 11px; font-weight: 800; border-radius: 8px; padding: 2px 7px; margin-left: 6px; vertical-align: middle; }
+  .news-item ul { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.5; }
   .row { cursor: pointer; }
   .row:active { filter: brightness(1.15); }
   .chev { opacity: .5; font-size: 22px; line-height: 1; }
@@ -123,7 +135,7 @@
 </head>
 <body>
 <div id="app">
-  <div class="topbar"><button id="update">🔄 Оновити</button><button id="open-lb" data-open="ov-lb">🏆 Лідери</button></div>
+  <div class="topbar"><div class="tb-left"><button id="open-lb" data-open="ov-lb">🏆 Лідери</button><button id="update">🔄 Оновити</button></div><div class="tb-right"><button id="open-news" data-open="ov-news">📰 Новини<span class="dot" id="dot-news"></span></button></div></div>
   <div class="top">
     <div id="score">$1</div>
     <div id="cps"></div>
@@ -199,6 +211,14 @@
   </div>
 </div>
 
+<!-- Новини -->
+<div class="overlay" id="ov-news">
+  <div class="sheet">
+    <div class="sheet-head"><h2>📰 Новини</h2><button class="close">✕</button></div>
+    <div class="list" id="list-news"></div>
+  </div>
+</div>
+
 <!-- Профіль гравця -->
 <div class="overlay" id="ov-player" style="z-index: 11">
   <div class="sheet">
@@ -243,7 +263,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 3;
+const APP_VERSION = 8;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -585,6 +605,63 @@ setInterval(() => {
   if (LB_URL && s.name && lbSig() !== lbSent) lbSubmit().catch(() => {});
 }, 30000);
 
+/* ---------- Новини ---------- */
+// Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
+const NEWS = [
+  { v: 5, date: '1 листопада', title: 'Зручніша кнопка новин', items: [
+    '📰 Кнопка «Новини» тепер у правому верхньому куті',
+  ]},
+  { v: 4, date: '1 листопада', title: 'Розділ «Новини»', items: [
+    '📰 Додано кнопку «Новини»: тут пишемо, що змінилося в кожному оновленні',
+    '🔴 Червоний значок показує, що є нові записи, які ви ще не читали',
+  ]},
+  { v: 3, date: '1 листопада', title: 'Дві таблиці лідерів і свій смайлик', items: [
+    '💰 Вкладка «Зароблено»: скільки грошей гравець заробив за весь час',
+    '👛 Вкладка «Баланс»: у кого найбільше грошей зараз',
+    '😎 У профілі торкніться смайлика, щоб змінити його на будь-який з клавіатури',
+    '👀 Смайлик видно в таблиці лідерів і в профілі гравця',
+  ]},
+  { v: 2, date: '1 листопада', title: 'Профілі гравців', items: [
+    '👤 У таблиці лідерів торкніться гравця, щоб відкрити його профіль',
+    '🏠 У профілі видно колекцію речей, дохід за клік і за секунду',
+  ]},
+  { v: 1, date: '1 листопада', title: 'Запуск гри', items: [
+    '💾 Додано код збереження прогресу в «Профілі»',
+    '🔄 З\'явилася кнопка «Оновити», коли виходить нова версія',
+    '🏆 Додано онлайн-таблицю лідерів',
+  ]},
+];
+const NEWS_KEY = 'clicker_news_seen';
+const getSeen = () => { try { return parseInt(localStorage.getItem(NEWS_KEY), 10) || 0; } catch (e) { return 0; } };
+const setSeen = v => { try { localStorage.setItem(NEWS_KEY, String(v)); } catch (e) {} };
+let newsSeen = getSeen();
+function renderNews() {
+  const box = $('list-news');
+  box.innerHTML = '';
+  NEWS.forEach(n => {
+    const d = document.createElement('div');
+    d.className = 'news-item' + (n.v > newsSeen ? ' fresh' : '');
+    const head = document.createElement('div'); head.className = 'news-head';
+    const b = document.createElement('b'); b.textContent = n.title;
+    if (n.v > newsSeen) { const tag = document.createElement('span'); tag.className = 'news-new'; tag.textContent = 'НОВЕ'; b.appendChild(tag); }
+    const dt = document.createElement('span'); dt.className = 'news-date'; dt.textContent = 'v' + n.v + ' · ' + n.date;
+    head.append(b, dt);
+    const ul = document.createElement('ul');
+    n.items.forEach(x => { const li = document.createElement('li'); li.textContent = x; ul.appendChild(li); });
+    d.append(head, ul);
+    box.appendChild(d);
+  });
+}
+function updateNewsDot() {
+  const unread = NEWS.filter(n => n.v > newsSeen).length;
+  const dot = $('dot-news');
+  dot.style.display = unread ? 'block' : 'none';
+  dot.textContent = unread;
+}
+// Першого разу не показуємо червоний значок (нових гравців не лякаємо старими новинами)
+if (newsSeen === 0 && s.total === 0 && s.owned.length === 0) { newsSeen = APP_VERSION; setSeen(newsSeen); }
+renderNews(); updateNewsDot();
+
 /* ---------- Оновлення гри ---------- */
 $('ver').textContent = 'Версія ' + APP_VERSION;
 let updateReady = 0;
@@ -645,6 +722,10 @@ document.querySelectorAll('[data-open]').forEach(b => {
     $(b.dataset.open).classList.add('open');
     render();
     if (b.dataset.open === 'ov-lb') lbRefresh();
+    if (b.dataset.open === 'ov-news') {
+      renderNews();           // спочатку показуємо мітки «НОВЕ»
+      newsSeen = APP_VERSION; setSeen(newsSeen); updateNewsDot();
+    }
   };
 });
 document.querySelectorAll('.overlay').forEach(o => {
