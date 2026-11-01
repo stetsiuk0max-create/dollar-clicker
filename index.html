@@ -97,6 +97,7 @@
   .news-date { font-size: 12px; opacity: .65; white-space: nowrap; }
   .news-new { display: inline-block; background: #ffd54f; color: #3e2f00; font-size: 11px; font-weight: 800; border-radius: 8px; padding: 2px 7px; margin-left: 6px; vertical-align: middle; }
   .news-item ul { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.5; }
+  .bon { color: #ffd54f; font-weight: 700; opacity: 1 !important; }
   .row { cursor: pointer; }
   .row:active { filter: brightness(1.15); }
   .chev { opacity: .5; font-size: 22px; line-height: 1; }
@@ -169,6 +170,7 @@
   <div class="sheet">
     <div class="sheet-head"><h2>🛒 Магазин</h2><button class="close">✕</button></div>
     <div class="balance"></div>
+    <div class="lb-cap" id="shop-cap"></div>
     <div class="list" id="list-shop"></div>
   </div>
 </div>
@@ -263,7 +265,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 8;
+const APP_VERSION = 9;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -298,6 +300,10 @@ try {
 if (!s.uid) s.uid = 'p' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
 const $ = id => document.getElementById(id);
+const fmtR = n => {
+  if (n >= 1e4) return fmt(n);
+  return '$' + (Math.round(n * 10) / 10).toLocaleString('en-US', { maximumFractionDigits: 1 });
+};
 const fmt = n => {
   n = Math.floor(n);
   if (n < 1e4) return '$' + n.toLocaleString('en-US');
@@ -323,20 +329,22 @@ const UPGRADES = [
 
 /* ---------- Магазин (кожна річ купується один раз) ---------- */
 const SHOP = [
-  { id: 'phone',  ico: '📱', name: 'Телефон',    desc: 'Новенький смартфон',         price: 300 },
-  { id: 'laptop', ico: '💻', name: 'Ноутбук',    desc: 'Працювати можна звідусіль',  price: 1000 },
-  { id: 'watch',  ico: '⌚', name: 'Годинник',   desc: 'Швейцарський, дуже дорогий', price: 3000 },
-  { id: 'house',  ico: '🏠', name: 'Дім',        desc: 'Затишний будинок із садом',  price: 10000 },
-  { id: 'car',    ico: '🏎️', name: 'Машина',     desc: 'Спорткар з відкритим верхом', price: 25000 },
-  { id: 'heli',   ico: '🚁', name: 'Гвинтокрил', desc: 'Летіти над пробками',        price: 250000 },
-  { id: 'plane',  ico: '✈️', name: 'Літак',      desc: 'Власний приватний літак',    price: 1000000 },
-  { id: 'ship',   ico: '🚢', name: 'Корабель',   desc: 'Круїзний лайнер для друзів', price: 5000000 },
-  { id: 'island', ico: '🏝️', name: 'Острів',     desc: 'Приватний острів у океані',  price: 25000000 },
-  { id: 'rocket', ico: '🚀', name: 'Ракета',     desc: 'Політ на Місяць',            price: 100000000 },
+  { id: 'phone',  ico: '📱', name: 'Телефон',    desc: 'Новенький смартфон',         price: 300, bonus: 0.2 },
+  { id: 'laptop', ico: '💻', name: 'Ноутбук',    desc: 'Працювати можна звідусіль',  price: 1000, bonus: 0.3 },
+  { id: 'watch',  ico: '⌚', name: 'Годинник',   desc: 'Швейцарський, дуже дорогий', price: 3000, bonus: 0.4 },
+  { id: 'house',  ico: '🏠', name: 'Дім',        desc: 'Затишний будинок із садом',  price: 10000, bonus: 0.5 },
+  { id: 'car',    ico: '🏎️', name: 'Машина',     desc: 'Спорткар з відкритим верхом', price: 25000, bonus: 0.6 },
+  { id: 'heli',   ico: '🚁', name: 'Гвинтокрил', desc: 'Летіти над пробками',        price: 250000, bonus: 0.8 },
+  { id: 'plane',  ico: '✈️', name: 'Літак',      desc: 'Власний приватний літак',    price: 1000000, bonus: 1.0 },
+  { id: 'ship',   ico: '🚢', name: 'Корабель',   desc: 'Круїзний лайнер для друзів', price: 5000000, bonus: 1.5 },
+  { id: 'island', ico: '🏝️', name: 'Острів',     desc: 'Приватний острів у океані',  price: 25000000, bonus: 2.0 },
+  { id: 'rocket', ico: '🚀', name: 'Ракета',     desc: 'Політ на Місяць',            price: 100000000, bonus: 3.0 },
 ];
 
-const perClick = () => 1 + s.mult;
-const perSec   = () => s.auto;
+// Бонус від речей з магазину: кожна річ додає до множника всього доходу
+const shopBonus = () => 1 + SHOP.reduce((a, it) => a + (isOwned(it.id) ? it.bonus : 0), 0);
+const perClick = () => (1 + s.mult) * shopBonus();
+const perSec   = () => s.auto * shopBonus();
 const isOwned  = id => s.owned.includes(id);
 
 function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
@@ -361,7 +369,7 @@ const cellEls = {};
 SHOP.forEach(it => {
   const b = document.createElement('button');
   b.className = 'item';
-  b.innerHTML = `<span class="ico">${it.ico}</span><span class="info"><b>${it.name}</b><small>${it.desc}</small></span><span class="price"></span>`;
+  b.innerHTML = `<span class="ico">${it.ico}</span><span class="info"><b>${it.name}</b><small>${it.desc}</small><small class="bon">⚡ Весь дохід +×${it.bonus}</small></span><span class="price"></span>`;
   b.onclick = () => {
     if (isOwned(it.id) || s.score < it.price) return;
     s.score -= it.price; s.owned.push(it.id); vibrate(25); render(); save();
@@ -384,7 +392,7 @@ const showDot = (el, n) => { el.style.display = n ? 'block' : 'none'; el.textCon
 
 function render() {
   $('score').textContent = fmt(s.score);
-  $('cps').textContent = `+${fmt(perClick())} за клік` + (perSec() ? ` · +${fmt(perSec())} за сек` : '');
+  $('cps').textContent = `+${fmtR(perClick())} за клік` + (perSec() ? ` · +${fmtR(perSec())} за сек` : '');
   document.querySelectorAll('.balance').forEach(el => el.textContent = 'Ваш баланс: ' + fmt(s.score));
 
   let upAfford = 0;
@@ -418,8 +426,9 @@ function render() {
   $('pname').textContent = s.name || 'Гравець';
   $('st-bal').textContent = fmt(s.score);
   $('st-total').textContent = fmt(s.total);
-  $('st-click').textContent = fmt(perClick());
-  $('st-sec').textContent = fmt(perSec());
+  $('shop-cap').textContent = `⚡ Бонус від речей: весь дохід ×${(Math.round(shopBonus() * 100) / 100)}`;
+  $('st-click').textContent = fmtR(perClick());
+  $('st-sec').textContent = fmtR(perSec());
   $('coll-h').textContent = `Колекція: ${n}/${SHOP.length}`;
 }
 
@@ -438,7 +447,7 @@ function pop(x, y, text) {
 $('bill').addEventListener('pointerdown', e => {
   const g = perClick();
   s.score += g; s.total += g;
-  pop(e.clientX, e.clientY, '+' + fmt(g));
+  pop(e.clientX, e.clientY, '+' + fmtR(g));
   vibrate(8);
   render();
 });
@@ -455,7 +464,7 @@ async function lbSubmit() {
   const r = await fetch(`${LB_URL}/scores/${s.uid}.json`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: s.name, total, bal: Math.floor(s.score), items: s.owned.length, owned: s.owned, click: perClick(), sec: perSec(), auto: s.auto, av: s.avatar || '', t: Date.now() })
+    body: JSON.stringify({ name: s.name, total, bal: Math.floor(s.score), items: s.owned.length, owned: s.owned, click: Math.round(perClick() * 10) / 10, sec: Math.round(perSec() * 10) / 10, auto: s.auto, av: s.avatar || '', t: Date.now() })
   });
   if (r.ok) lbSent = sig;
 }
@@ -544,8 +553,8 @@ function showPlayer(v, rank) {
   $('pl-rank').textContent = (['🥇', '🥈', '🥉'][rank - 1] || '') + ' ' + rank + (lbTab === 'total' ? ' місце за зароблені гроші' : ' місце за балансом');
   $('pl-total').textContent = fmt(num(v.total));
   $('pl-bal').textContent = v.bal === undefined ? '—' : fmt(num(v.bal));
-  $('pl-click').textContent = fmt(v.click === undefined ? 1 : num(v.click));
-  $('pl-sec').textContent = fmt(num(v.sec));
+  $('pl-click').textContent = fmtR(v.click === undefined ? 1 : num(v.click));
+  $('pl-sec').textContent = fmtR(num(v.sec));
   $('pl-items').textContent = count + '/' + SHOP.length;
   $('pl-auto').textContent = v.auto === undefined ? '—' : String(Math.floor(num(v.auto)));
   const grid = $('pl-grid');
@@ -608,6 +617,13 @@ setInterval(() => {
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 9, date: '1 листопада', title: 'Речі з магазину дають бонус', items: [
+    '⚡ Кожна куплена річ збільшує весь ваш дохід: і за клік, і за секунду',
+    '📱 Телефон +×0.2, ноутбук +×0.3, годинник +×0.4, дім +×0.5, машина +×0.6',
+    '🚁 Гвинтокрил +×0.8, літак +×1, корабель +×1.5, острів +×2, ракета +×3',
+    '🧮 Бонуси складаються: усі десять речей разом дають +×10.3, тобто весь дохід ×11.3',
+    '🔢 Дохід тепер може бути з десятковими, наприклад $1.2 за клік',
+  ]},
   { v: 5, date: '1 листопада', title: 'Зручніша кнопка новин', items: [
     '📰 Кнопка «Новини» тепер у правому верхньому куті',
   ]},
