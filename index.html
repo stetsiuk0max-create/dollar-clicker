@@ -33,8 +33,8 @@
   @keyframes up { to { transform: translateY(-90px); opacity: 0; } }
 
   /* Нижня панель */
-  .bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: env(safe-area-inset-bottom); }
-  .bar button { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 2px; border: none; border-radius: 14px; font-size: 12px; font-weight: 800; }
+  .bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: env(safe-area-inset-bottom); }
+  .bar button { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 2px; border: none; border-radius: 14px; font-size: 11px; font-weight: 800; }
   .bi { font-size: 22px; line-height: 1.2; }
   .topbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; min-height: 36px; }
   #update { display: none; border: none; border-radius: 20px; padding: 8px 16px; background: #ff9800; color: #2b1800; font-size: 14px; font-weight: 800; animation: pulse 1.6s infinite; }
@@ -98,6 +98,28 @@
   .news-new { display: inline-block; background: #ffd54f; color: #3e2f00; font-size: 11px; font-weight: 800; border-radius: 8px; padding: 2px 7px; margin-left: 6px; vertical-align: middle; }
   .news-item ul { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.5; }
   .bon { color: #ffd54f; font-weight: 700; opacity: 1 !important; }
+  #open-game { background: #ff8a65; color: #3a1100; }
+  .gsec { padding: 4px 18px 6px; font-weight: 700; font-size: 14px; }
+  .rg { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 0 14px; }
+  .rc { border: none; border-radius: 10px; padding: 8px 0; background: #1f4a30; color: #fff; font-size: 12px; font-weight: 700; line-height: 1.3; }
+  .rc small { display: block; color: #ffd54f; font-size: 11px; }
+  .rc.sel { background: #ffd54f; color: #3e2f00; }
+  .rc.sel small { color: #3e2f00; }
+  .ngrid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; padding: 0 14px; }
+  .nb { border: none; border-radius: 8px; padding: 8px 0; background: #1f4a30; color: #fff; font-size: 12px; font-weight: 700; }
+  .nb.sel { background: #ffd54f; color: #3e2f00; }
+  .nb.hit { background: #43a047; color: #fff; }
+  .bet { padding: 0 14px; }
+  .bet input { width: 100%; padding: 12px; border: 2px solid #2d5a3d; border-radius: 12px; background: #0f2417; color: #fff; font-size: 18px; font-weight: 700; -webkit-user-select: text; user-select: text; }
+  .chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 8px 14px 0; }
+  .chips button { border: none; border-radius: 10px; padding: 9px 0; background: #2d5a3d; color: #fff; font-size: 13px; font-weight: 700; }
+  .ginfo { padding: 10px 18px 0; text-align: center; font-size: 14px; color: #b9f6ca; min-height: 40px; }
+  #g-play { display: block; width: calc(100% - 28px); margin: 10px 14px 0; padding: 14px; border: none; border-radius: 14px; background: #ffd54f; color: #3e2f00; font-size: 18px; font-weight: 800; }
+  #g-play:disabled { opacity: .5; }
+  #g-ball { margin: 12px auto 0; width: 84px; height: 84px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #fff59d, #ffb300); color: #3e2f00; font-size: 34px; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(0,0,0,.4); }
+  #g-msg { padding: 10px 18px 0; text-align: center; font-weight: 700; min-height: 44px; }
+  #g-msg.win { color: #a5f3b0; } #g-msg.lose { color: #ffab91; }
+  .gstat { text-align: center; font-size: 12px; opacity: .7; padding: 12px 18px 0; }
   .row { cursor: pointer; }
   .row:active { filter: brightness(1.15); }
   .chev { opacity: .5; font-size: 22px; line-height: 1; }
@@ -153,6 +175,7 @@
     <button id="open-up"   data-open="ov-up"><span class="bi">⚡</span>Покращення<span class="dot" id="dot-up"></span></button>
     <button id="open-shop" data-open="ov-shop"><span class="bi">🛒</span>Магазин<span class="dot" id="dot-shop"></span></button>
     <button id="open-prof" data-open="ov-prof"><span class="bi">👤</span>Профіль</button>
+    <button id="open-game" data-open="ov-game"><span class="bi">🎲</span>Гра</button>
   </div>
 </div>
 
@@ -213,6 +236,30 @@
   </div>
 </div>
 
+<!-- Міні-гра -->
+<div class="overlay" id="ov-game">
+  <div class="sheet">
+    <div class="sheet-head"><h2>🎲 Щасливе число</h2><button class="close">✕</button></div>
+    <div class="balance"></div>
+    <div class="scroll">
+      <div class="gsec">1. Скільки чисел? Більше чисел — більший множник</div>
+      <div class="rg" id="g-ranges"></div>
+      <div class="gsec" style="padding-top:12px">2. Оберіть своє число</div>
+      <div class="ngrid" id="g-nums"></div>
+      <div class="gsec" style="padding-top:12px">3. Ваша ставка (мінімум $10,000)</div>
+      <div class="bet"><input id="g-bet" inputmode="decimal" placeholder="Напр. 10000 або 50k" autocomplete="off" value="10000"></div>
+      <div class="chips" id="g-chips">
+        <button data-bet="10000">10K</button><button data-bet="50000">50K</button><button data-bet="100000">100K</button><button data-bet="1000000">1M</button><button data-bet="max">Все</button>
+      </div>
+      <div class="ginfo" id="g-info"></div>
+      <button id="g-play">🎲 Грати</button>
+      <div id="g-ball">?</div>
+      <div id="g-msg"></div>
+      <div class="gstat" id="g-stat"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Новини -->
 <div class="overlay" id="ov-news">
   <div class="sheet">
@@ -265,7 +312,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 9;
+const APP_VERSION = 10;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -284,7 +331,7 @@ function cleanEmoji(str) {
 }
 const KEY = 'clicker_save_v2';
 const DEFAULT = { score: 1, total: 0, mult: 0, auto: 0 };
-let s = { ...DEFAULT, owned: [], avatar: '' };
+let s = { ...DEFAULT, owned: [], avatar: '', g: { p: 0, w: 0, b: 0 }, pend: null };
 try {
   const saved = JSON.parse(localStorage.getItem(KEY)) || {};
   s.score = saved.score ?? DEFAULT.score;
@@ -295,6 +342,11 @@ try {
   s.name = typeof saved.name === 'string' ? saved.name : '';
   s.uid = typeof saved.uid === 'string' ? saved.uid : '';
   s.avatar = cleanEmoji(saved.avatar);
+  if (saved.g && typeof saved.g === 'object') {
+    const n = x => (Number.isFinite(x) && x >= 0) ? x : 0;
+    s.g = { p: n(saved.g.p), w: n(saved.g.w), b: n(saved.g.b) };
+  }
+  if (saved.pend && Number.isFinite(saved.pend.prize) && Number.isFinite(saved.pend.bet) && saved.pend.prize >= 0 && saved.pend.bet >= 0) s.pend = { prize: saved.pend.prize, bet: saved.pend.bet };
 } catch (e) {}
 
 if (!s.uid) s.uid = 'p' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -614,9 +666,116 @@ setInterval(() => {
   if (LB_URL && s.name && lbSig() !== lbSent) lbSubmit().catch(() => {});
 }, 30000);
 
+/* ---------- Міні-гра: Щасливе число ---------- */
+const GAME_MIN_BET = 10000;
+const RANGES = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+const multFor = n => Math.round(n * 0.9);   // шанс 1 з N, виграш ×(0.9·N)
+let gRange = 10, gPick = 0, gBusy = false;
+
+function randInt(n) {                       // випадкове число від 1 до n
+  if (window.crypto && crypto.getRandomValues) {
+    const a = new Uint32Array(1), lim = Math.floor(4294967296 / n) * n;
+    do { crypto.getRandomValues(a); } while (a[0] >= lim);
+    return a[0] % n + 1;
+  }
+  return Math.floor(Math.random() * n) + 1;
+}
+function parseBet(str) {
+  const m = String(str).toLowerCase().replace(/[\s,_$]/g, '').match(/^(\d+(?:\.\d+)?)([kmкм])?$/);
+  if (!m) return NaN;
+  let v = parseFloat(m[1]);
+  if (m[2] === 'k' || m[2] === 'к') v *= 1e3; else if (m[2]) v *= 1e6;
+  return Math.floor(v);
+}
+function creditPending() {                  // зараховуємо виграш (навіть якщо гру закрили під час анімації)
+  const p = s.pend;
+  if (!p) return;
+  s.pend = null;
+  if (p.prize > 0) {
+    s.score += p.prize; s.total += p.prize - p.bet; s.g.w++;
+    s.g.b = Math.max(s.g.b, p.prize - p.bet);
+  }
+  save();
+}
+creditPending();
+
+function buildGame() {
+  const rg = $('g-ranges');
+  rg.innerHTML = '';
+  RANGES.forEach(n => {
+    const b = document.createElement('button');
+    b.className = 'rc' + (n === gRange ? ' sel' : '');
+    b.innerHTML = '1–' + n + '<small>×' + multFor(n) + '</small>';
+    b.onclick = () => { if (gBusy) return; gRange = n; if (gPick > n) gPick = 0; buildGame(); };
+    rg.appendChild(b);
+  });
+  const ng = $('g-nums');
+  ng.innerHTML = '';
+  for (let i = 1; i <= gRange; i++) {
+    const b = document.createElement('button');
+    b.className = 'nb' + (i === gPick ? ' sel' : '');
+    b.textContent = i;
+    b.onclick = () => { if (gBusy) return; gPick = i; buildGame(); };
+    ng.appendChild(b);
+  }
+  gameInfo();
+}
+function gameInfo() {
+  const bet = parseBet($('g-bet').value), mult = multFor(gRange);
+  const pick = gPick ? 'Ваше число: ' + gPick + '. ' : '';
+  $('g-info').textContent = (bet >= GAME_MIN_BET)
+    ? pick + 'Шанс 1 з ' + gRange + ' · ×' + mult + ' · виграш ' + fmt(bet * mult)
+    : pick + 'Мінімальна ставка ' + fmt(GAME_MIN_BET);
+  $('g-stat').textContent = s.g.p ? 'Ігор: ' + s.g.p + ' · перемог: ' + s.g.w + ' · найбільший прибуток: ' + fmt(s.g.b) : '';
+}
+$('g-bet').addEventListener('input', gameInfo);
+$('g-chips').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b || gBusy) return;
+  $('g-bet').value = b.dataset.bet === 'max' ? String(Math.floor(s.score)) : b.dataset.bet;
+  gameInfo();
+});
+
+$('g-play').onclick = () => {
+  if (gBusy) return;
+  const msg = (text, cls) => { const m = $('g-msg'); m.textContent = text; m.className = cls || ''; };
+  const bet = parseBet($('g-bet').value);
+  if (!(bet >= GAME_MIN_BET)) return msg('Мінімальна ставка ' + fmt(GAME_MIN_BET));
+  if (bet > Math.floor(s.score)) return msg('Недостатньо грошей на балансі');
+  if (!gPick) return msg('Спочатку оберіть своє число');
+  creditPending();
+  const N = gRange, pick = gPick, lucky = randInt(N), win = lucky === pick;
+  s.score -= bet; s.g.p++;
+  s.pend = { prize: win ? bet * multFor(N) : 0, bet };
+  save(); render();
+  gBusy = true;
+  $('g-play').disabled = true;
+  msg('Крутимо…');
+  const ball = $('g-ball');
+  let i = 0;
+  const iv = setInterval(() => {
+    ball.textContent = randInt(N);
+    if (++i < 16) return;
+    clearInterval(iv);
+    ball.textContent = lucky;
+    creditPending();
+    gBusy = false;
+    $('g-play').disabled = false;
+    if (win) { msg('🎉 Вгадали! Щасливе число ' + lucky + '. Виграш ' + fmt(bet * multFor(N)) + ' (прибуток ' + fmt(bet * (multFor(N) - 1)) + ')', 'win'); if (navigator.vibrate) navigator.vibrate([40, 40, 80]); }
+    else { msg('😔 Щасливе число було ' + lucky + ', а ви обрали ' + pick + '. Втрачено ' + fmt(bet), 'lose'); if (navigator.vibrate) navigator.vibrate(30); }
+    render(); gameInfo();
+  }, 90);
+};
+
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 10, date: '2 листопада', title: 'Міні-гра «Щасливе число»', items: [
+    '🎲 Нова кнопка «Гра» внизу: вгадайте щасливе число й виграйте гроші',
+    '🔢 Оберіть діапазон від 1–10 до 1–100: чим більше чисел, тим більший множник (від ×9 до ×90)',
+    '💵 Мінімальна ставка $10,000. Можна писати 50k або 2m',
+    '🏆 Чистий прибуток від перемог входить у «Зароблено» в таблиці лідерів',
+  ]},
   { v: 9, date: '1 листопада', title: 'Речі з магазину дають бонус', items: [
     '⚡ Кожна куплена річ збільшує весь ваш дохід: і за клік, і за секунду',
     '📱 Телефон +×0.2, ноутбук +×0.3, годинник +×0.4, дім +×0.5, машина +×0.6',
@@ -697,7 +856,8 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) chec
 
 /* ---------- Код збереження ---------- */
 function makeCode() {
-  const o = { v: 1, score: s.score, total: s.total, mult: s.mult, auto: s.auto, owned: s.owned, name: s.name, uid: s.uid, avatar: s.avatar };
+  creditPending();
+  const o = { v: 1, score: s.score, total: s.total, mult: s.mult, auto: s.auto, owned: s.owned, name: s.name, uid: s.uid, avatar: s.avatar, g: s.g };
   return 'DC1-' + btoa(unescape(encodeURIComponent(JSON.stringify(o))));
 }
 function applyCode(str) {
@@ -712,6 +872,8 @@ function applyCode(str) {
   s.owned = Array.isArray(o.owned) ? o.owned.filter(id => SHOP.some(i => i.id === id)) : [];
   s.name = typeof o.name === 'string' ? o.name.slice(0, 16) : '';
   s.avatar = cleanEmoji(o.avatar);
+  s.pend = null;
+  if (o.g && typeof o.g === 'object') { const n = x => (Number.isFinite(x) && x >= 0) ? x : 0; s.g = { p: n(o.g.p), w: n(o.g.w), b: n(o.g.b) }; }
   if (typeof o.uid === 'string' && /^[A-Za-z0-9_-]{4,64}$/.test(o.uid)) s.uid = o.uid;
   $('nick').value = s.name;
   save(); render();
@@ -738,6 +900,7 @@ document.querySelectorAll('[data-open]').forEach(b => {
     $(b.dataset.open).classList.add('open');
     render();
     if (b.dataset.open === 'ov-lb') lbRefresh();
+    if (b.dataset.open === 'ov-game') buildGame();
     if (b.dataset.open === 'ov-news') {
       renderNews();           // спочатку показуємо мітки «НОВЕ»
       newsSeen = APP_VERSION; setSeen(newsSeen); updateNewsDot();
