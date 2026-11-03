@@ -120,6 +120,22 @@
   #g-msg { padding: 10px 18px 0; text-align: center; font-weight: 700; min-height: 44px; }
   #g-msg.win { color: #a5f3b0; } #g-msg.lose { color: #ffab91; }
   .gstat { text-align: center; font-size: 12px; opacity: .7; padding: 12px 18px 0; }
+  #toast { position: fixed; top: 16px; left: 50%; transform: translate(-50%, -140%); max-width: 90%; z-index: 30; background: #ffd54f; color: #3e2f00; font-weight: 800; padding: 12px 18px; border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.5); transition: transform .3s; pointer-events: none; text-align: center; }
+  #toast.show { transform: translate(-50%, 0); }
+  .ptitle { cursor: default; }
+  #ptitle { cursor: pointer; }
+  .ach { display: flex; align-items: center; gap: 10px; background: #1f4a30; border-radius: 12px; padding: 10px 12px; cursor: pointer; }
+  .ach.locked { opacity: .55; cursor: default; }
+  .ach.on { background: #2e7d32; opacity: 1; }
+  .ach .ai { font-size: 26px; width: 34px; text-align: center; }
+  .ach .ainfo { flex: 1; min-width: 0; }
+  .ach b { display: block; font-size: 15px; }
+  .ach small { font-size: 12px; opacity: .8; }
+  .pbar { height: 6px; border-radius: 3px; background: #0f2417; margin-top: 5px; overflow: hidden; }
+  .pbar i { display: block; height: 100%; background: #ffd54f; }
+  .ach .ast { font-size: 12px; font-weight: 700; white-space: nowrap; color: #ffd54f; }
+  .testnote { margin: 0 14px 8px; padding: 8px 12px; border-radius: 10px; background: rgba(255, 213, 79, .15); color: #ffd54f; font-size: 13px; font-weight: 700; text-align: center; }
+  .tagnone { width: 100%; border: none; border-radius: 12px; padding: 12px; background: #2d5a3d; color: #fff; font-size: 14px; font-weight: 700; }
   .row { cursor: pointer; }
   .row:active { filter: brightness(1.15); }
   .chev { opacity: .5; font-size: 22px; line-height: 1; }
@@ -219,10 +235,16 @@
         <div class="stat"><small>Усього зароблено</small><b id="st-total"></b></div>
         <div class="stat"><small>За клік</small><b id="st-click"></b></div>
         <div class="stat"><small>За секунду</small><b id="st-sec"></b></div>
-        <div class="stat" style="grid-column: 1 / -1"><small>⏱️ Час у грі</small><b id="st-time"></b></div>
+        <div class="stat"><small>⏱️ Час у грі</small><b id="st-time"></b></div>
+        <div class="stat"><small>👆 Кліків зроблено</small><b id="st-clicks"></b></div>
       </div>
       <div class="coll-h" id="coll-h"></div>
       <div class="grid" id="grid"></div>
+      <div class="coll-h" id="ach-h" style="padding-top: 16px"></div>
+      <div class="testnote">🧪 Досягнення поки в тестовому режимі: назви й умови можуть змінитися</div>
+      <div class="hint" style="padding: 0 18px 8px">Торкніться відкритого досягнення, щоб обрати його тегом</div>
+      <div id="ach-list" style="display: grid; gap: 8px; padding: 0 14px"></div>
+      <div style="padding: 8px 14px 0"><button id="tag-none" class="tagnone">✖ Без тегу</button></div>
       <div class="backup">
         <div class="coll-h">💾 Резервна копія прогресу</div>
         <textarea id="code" placeholder="Тут з'явиться код збереження. Щоб завантажити прогрес, вставте код сюди." spellcheck="false" autocomplete="off"></textarea>
@@ -236,6 +258,8 @@
     </div>
   </div>
 </div>
+
+<div id="toast"></div>
 
 <!-- Міні-гра -->
 <div class="overlay" id="ov-game">
@@ -314,7 +338,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 12;
+const APP_VERSION = 15;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -333,7 +357,7 @@ function cleanEmoji(str) {
 }
 const KEY = 'clicker_save_v2';
 const DEFAULT = { score: 1, total: 0, mult: 0, auto: 0 };
-let s = { ...DEFAULT, owned: [], avatar: '', g: { p: 0, w: 0, b: 0 }, pend: null, time: 0 };
+let s = { ...DEFAULT, owned: [], avatar: '', g: { p: 0, w: 0, b: 0 }, pend: null, time: 0, clicks: 0, tag: '' };
 try {
   const saved = JSON.parse(localStorage.getItem(KEY)) || {};
   s.score = saved.score ?? DEFAULT.score;
@@ -345,6 +369,8 @@ try {
   s.uid = typeof saved.uid === 'string' ? saved.uid : '';
   s.avatar = cleanEmoji(saved.avatar);
   s.time = (Number.isFinite(saved.time) && saved.time >= 0) ? saved.time : 0;
+  s.clicks = (Number.isFinite(saved.clicks) && saved.clicks >= 0) ? Math.floor(saved.clicks) : 0;
+  s.tag = typeof saved.tag === 'string' ? saved.tag : '';
   if (saved.g && typeof saved.g === 'object') {
     const n = x => (Number.isFinite(x) && x >= 0) ? x : 0;
     s.g = { p: n(saved.g.p), w: n(saved.g.w), b: n(saved.g.b) };
@@ -444,10 +470,71 @@ SHOP.forEach(it => {
   cellEls[it.id] = { c, e: c.querySelector('.e'), n: c.querySelector('small') };
 });
 
-const TITLES = ['Новачок', 'Підприємець', 'Бізнесмен', 'Мільйонер', 'Магнат'];
-const AVATARS = ['🙂', '😎', '🤵', '🤑', '👑'];
-const rankIdx = n => n < 1 ? 0 : n < 3 ? 1 : n < 6 ? 2 : n < 9 ? 3 : 4;
-const rankFor = n => TITLES[rankIdx(n)];
+const DEFAULT_AVATAR = '🙂';
+
+/* ---------- Теги та досягнення ---------- */
+// Щоб додати новий тег, додайте рядок у список. need — скільки кліків потрібно.
+const TAGS = [
+  { id: 'c1',   need: 1,     ico: '🌱', name: 'Новачок' },
+  { id: 'c100', need: 100,   ico: '👆', name: 'Практикант' },
+  { id: 'c1k',  need: 1000,  ico: '🖱️', name: 'Клікер' },
+  { id: 'c5k',  need: 5000,  ico: '⚡', name: 'Майстер кліків' },
+  { id: 'c10k', need: 10000, ico: '🔥', name: 'Профі' },
+  { id: 'c20k', need: 20000, ico: '💎', name: 'Легенда' },
+  { id: 'c50k', need: 50000, ico: '👑', name: 'Король кліків' },
+];
+const tagById = id => TAGS.find(x => x.id === id);
+const tagUnlocked = id => { const x = tagById(id); return !!x && s.clicks >= x.need; };
+const tagText = id => { const x = tagById(id); return x ? x.ico + ' ' + x.name : ''; };
+if (!tagUnlocked(s.tag)) s.tag = '';
+
+let toastTimer = 0;
+function showToast(text) {
+  const el = $('toast');
+  el.textContent = text;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+const achEls = {};
+TAGS.forEach(x => {
+  const row = document.createElement('div');
+  row.className = 'ach locked';
+  row.innerHTML = '<span class="ai"></span><span class="ainfo"><b></b><small></small><div class="pbar"><i></i></div></span><span class="ast"></span>';
+  row.onclick = () => {
+    if (!tagUnlocked(x.id)) return;
+    s.tag = x.id; vibrate(15); save(); render();
+  };
+  $('ach-list').appendChild(row);
+  achEls[x.id] = { row, ai: row.querySelector('.ai'), name: row.querySelector('b'), desc: row.querySelector('small'), fill: row.querySelector('i'), st: row.querySelector('.ast') };
+});
+function updateAch() {
+  let n = 0;
+  TAGS.forEach(x => {
+    const e = achEls[x.id], ok = s.clicks >= x.need;
+    if (ok) n++;
+    e.row.classList.toggle('locked', !ok);
+    e.row.classList.toggle('on', s.tag === x.id);
+    e.ai.textContent = ok ? x.ico : '🔒';
+    e.name.textContent = x.name;
+    e.desc.textContent = 'Зробіть ' + x.need.toLocaleString('en-US') + ' кліків · ' + Math.min(s.clicks, x.need).toLocaleString('en-US') + '/' + x.need.toLocaleString('en-US');
+    e.fill.style.width = Math.min(100, s.clicks / x.need * 100) + '%';
+    e.st.textContent = s.tag === x.id ? '✓ Обрано' : ok ? 'Обрати' : '';
+  });
+  $('ach-h').textContent = '🏅 Досягнення: ' + n + '/' + TAGS.length;
+}
+$('tag-none').onclick = () => { s.tag = ''; save(); render(); };
+$('ptitle').onclick = () => $('ach-h').scrollIntoView({ behavior: 'smooth', block: 'start' });
+function onClickCount() {
+  s.clicks++;
+  TAGS.forEach(x => {
+    if (s.clicks !== x.need) return;
+    if (x.need === 1 && !s.tag) s.tag = x.id;   // перший тег одягається сам
+    showToast('🏅 Нове досягнення: ' + x.name + '!');
+    vibrate([30, 40, 60]);
+  });
+}
 const showDot = (el, n) => { el.style.display = n ? 'block' : 'none'; el.textContent = n; };
 
 function render() {
@@ -481,8 +568,10 @@ function render() {
   showDot($('dot-shop'), shopAfford);
 
   const n = s.owned.length;
-  $('ptitle').textContent = rankFor(n);
-  $('avatar').textContent = s.avatar || AVATARS[rankIdx(n)];
+  $('ptitle').textContent = (tagText(s.tag) || 'Без тегу') + ' ›';
+  $('avatar').textContent = s.avatar || DEFAULT_AVATAR;
+  $('st-clicks').textContent = s.clicks.toLocaleString('en-US');
+  updateAch();
   $('pname').textContent = s.name || 'Гравець';
   $('st-bal').textContent = fmt(s.score);
   $('st-total').textContent = fmt(s.total);
@@ -508,6 +597,7 @@ function pop(x, y, text) {
 $('bill').addEventListener('pointerdown', e => {
   const g = perClick();
   s.score += g; s.total += g;
+  onClickCount();
   pop(e.clientX, e.clientY, '+' + fmtR(g));
   vibrate(8);
   render();
@@ -518,14 +608,14 @@ $('bill').addEventListener('pointerdown', e => {
 const LB_URL = 'https://cliker-b17da-default-rtdb.firebaseio.com';
 
 let lbSent = '';
-const lbSig = () => Math.floor(s.total) + '|' + Math.floor(s.score) + '|' + s.owned.length + '|' + s.mult + '|' + s.auto + '|' + s.avatar + '|' + Math.floor(s.time / 60);
+const lbSig = () => Math.floor(s.total) + '|' + Math.floor(s.score) + '|' + s.owned.length + '|' + s.mult + '|' + s.auto + '|' + s.avatar + '|' + Math.floor(s.time / 60) + '|' + s.tag;
 async function lbSubmit() {
   if (!LB_URL || !s.name) return;
   const total = Math.floor(s.total), sig = lbSig();
   const r = await fetch(`${LB_URL}/scores/${s.uid}.json`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: s.name, total, bal: Math.floor(s.score), items: s.owned.length, owned: s.owned, click: Math.round(perClick() * 10) / 10, sec: Math.round(perSec() * 10) / 10, auto: s.auto, av: s.avatar || '', pt: Math.floor(s.time), t: Date.now() })
+    body: JSON.stringify({ name: s.name, total, bal: Math.floor(s.score), items: s.owned.length, owned: s.owned, click: Math.round(perClick() * 10) / 10, sec: Math.round(perSec() * 10) / 10, auto: s.auto, av: s.avatar || '', pt: Math.floor(s.time), tag: s.tag, t: Date.now() })
   });
   if (r.ok) lbSent = sig;
 }
@@ -537,7 +627,7 @@ const ownedList = x => (Array.isArray(x) ? x : (x && typeof x === 'object' ? Obj
 const playerCount = v => v.owned !== undefined
   ? ownedList(v.owned).length
   : Math.min(Math.max(0, Number(v.items) || 0), SHOP.length);
-const avatarOf = v => cleanEmoji(v.av) || AVATARS[rankIdx(playerCount(v))];
+const avatarOf = v => cleanEmoji(v.av) || DEFAULT_AVATAR;
 
 async function lbFetch(field) {
   let r = await fetch(`${LB_URL}/scores.json?orderBy=%22${field}%22&limitToLast=20`);
@@ -609,7 +699,9 @@ function showPlayer(v, rank) {
   const owned = ownedList(v.owned);
   const count = playerCount(v);
   $('pl-name').textContent = String(v.name || '?').slice(0, 16);
-  $('pl-title').textContent = rankFor(count);
+  const tg = tagText(typeof v.tag === 'string' ? v.tag : '');
+  $('pl-title').textContent = tg;
+  $('pl-title').style.display = tg ? '' : 'none';
   $('pl-avatar').textContent = avatarOf(v);
   $('pl-rank').textContent = (['🥇', '🥈', '🥉'][rank - 1] || '') + ' ' + rank + (lbTab === 'total' ? ' місце за зароблені гроші' : ' місце за балансом');
   $('pl-total').textContent = fmt(num(v.total));
@@ -780,6 +872,12 @@ $('g-play').onclick = () => {
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 13, date: '3 листопада', title: 'Досягнення і теги', items: [
+    '🏅 У «Профілі» з’явилися досягнення за кліки: 1, 100, 1 000, 5 000, 10 000, 20 000 і 50 000',
+    '🏷️ За кожне досягнення відкривається тег, який можна обрати й показати в профілі',
+    '🛒 Річ у магазині більше не дає статус: статус тепер залежить тільки від обраного тега',
+    '👆 Кліки рахуються з цього оновлення',
+  ]},
   { v: 11, date: '3 листопада', title: 'Час у грі', items: [
     '⏱️ У профілі тепер видно, скільки часу ви провели в грі',
     '👀 Час також видно в профілі інших гравців. У тих, хто ще не оновився, показано «—»',
@@ -872,7 +970,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) chec
 /* ---------- Код збереження ---------- */
 function makeCode() {
   creditPending();
-  const o = { v: 1, score: s.score, total: s.total, mult: s.mult, auto: s.auto, owned: s.owned, name: s.name, uid: s.uid, avatar: s.avatar, g: s.g, time: Math.floor(s.time) };
+  const o = { v: 1, score: s.score, total: s.total, mult: s.mult, auto: s.auto, owned: s.owned, name: s.name, uid: s.uid, avatar: s.avatar, g: s.g, time: Math.floor(s.time), clicks: s.clicks, tag: s.tag };
   return 'DC1-' + btoa(unescape(encodeURIComponent(JSON.stringify(o))));
 }
 function applyCode(str) {
@@ -888,6 +986,9 @@ function applyCode(str) {
   s.name = typeof o.name === 'string' ? o.name.slice(0, 16) : '';
   s.avatar = cleanEmoji(o.avatar);
   s.pend = null;
+  s.clicks = (Number.isFinite(o.clicks) && o.clicks >= 0) ? Math.floor(o.clicks) : 0;
+  s.tag = typeof o.tag === 'string' ? o.tag : '';
+  if (!tagUnlocked(s.tag)) s.tag = '';
   s.time = (Number.isFinite(o.time) && o.time >= 0) ? o.time : 0;
   if (o.g && typeof o.g === 'object') { const n = x => (Number.isFinite(x) && x >= 0) ? x : 0; s.g = { p: n(o.g.p), w: n(o.g.w), b: n(o.g.b) }; }
   if (typeof o.uid === 'string' && /^[A-Za-z0-9_-]{4,64}$/.test(o.uid)) s.uid = o.uid;
