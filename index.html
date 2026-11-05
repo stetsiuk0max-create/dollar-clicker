@@ -343,7 +343,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 17;
+const APP_VERSION = 19;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -479,14 +479,15 @@ const DEFAULT_AVATAR = '🙂';
 
 /* ---------- Теги та досягнення ---------- */
 // Щоб додати новий тег, додайте рядок у список. need — скільки кліків потрібно.
+// id не змінюйте: за ним зберігається обраний тег (число в id — лише історична назва).
 const TAGS = [
   { id: 'c1',   need: 1,     ico: '🌱', name: 'Новачок' },
-  { id: 'c100', need: 100,   ico: '👆', name: 'Практикант' },
-  { id: 'c1k',  need: 1000,  ico: '🖱️', name: 'Клікер' },
-  { id: 'c5k',  need: 5000,  ico: '⚡', name: 'Майстер кліків' },
-  { id: 'c10k', need: 10000, ico: '🔥', name: 'Профі' },
-  { id: 'c20k', need: 20000, ico: '💎', name: 'Легенда' },
-  { id: 'c50k', need: 50000, ico: '👑', name: 'Король кліків' },
+  { id: 'c100', need: 1000,   ico: '👆', name: 'Практикант' },
+  { id: 'c1k',  need: 10000,  ico: '🖱️', name: 'Клікер' },
+  { id: 'c5k',  need: 100000,  ico: '⚡', name: 'Майстер кліків' },
+  { id: 'c10k', need: 300000, ico: '🔥', name: 'Профі' },
+  { id: 'c20k', need: 500000, ico: '💎', name: 'Легенда' },
+  { id: 'c50k', need: 1000000, ico: '👑', name: 'Король кліків' },
 ];
 const tagById = id => TAGS.find(x => x.id === id);
 const tagUnlocked = id => { const x = tagById(id); return !!x && s.clicks >= x.need; };
