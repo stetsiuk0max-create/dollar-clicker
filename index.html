@@ -129,6 +129,7 @@
   #toast.show { transform: translate(-50%, 0); opacity: 1; visibility: visible; }
   .ptitle { cursor: default; }
   #ptitle { cursor: pointer; }
+  .achsec { font-size: 13px; font-weight: 700; color: #b9f6ca; padding: 6px 4px 0; }
   .ach { display: flex; align-items: center; gap: 10px; background: #1f4a30; border-radius: 12px; padding: 10px 12px; cursor: pointer; }
   .ach.locked { opacity: .55; cursor: default; }
   .ach.on { background: #2e7d32; opacity: 1; }
@@ -343,7 +344,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 19;
+const APP_VERSION = 20;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -481,16 +482,25 @@ const DEFAULT_AVATAR = '🙂';
 // Щоб додати новий тег, додайте рядок у список. need — скільки кліків потрібно.
 // id не змінюйте: за ним зберігається обраний тег (число в id — лише історична назва).
 const TAGS = [
-  { id: 'c1',   need: 1,     ico: '🌱', name: 'Новачок' },
-  { id: 'c100', need: 1000,   ico: '👆', name: 'Практикант' },
-  { id: 'c1k',  need: 10000,  ico: '🖱️', name: 'Клікер' },
-  { id: 'c5k',  need: 100000,  ico: '⚡', name: 'Майстер кліків' },
-  { id: 'c10k', need: 300000, ico: '🔥', name: 'Профі' },
-  { id: 'c20k', need: 500000, ico: '💎', name: 'Легенда' },
-  { id: 'c50k', need: 1000000, ico: '👑', name: 'Король кліків' },
+  // за кліки: need — кількість кліків
+  { id: 'c1',   type: 'clicks', need: 1,       ico: '🌱', name: 'Новачок' },
+  { id: 'c100', type: 'clicks', need: 1000,    ico: '👆', name: 'Практикант' },
+  { id: 'c1k',  type: 'clicks', need: 10000,   ico: '🖱️', name: 'Клікер' },
+  { id: 'c5k',  type: 'clicks', need: 100000,  ico: '⚡', name: 'Майстер кліків' },
+  { id: 'c10k', type: 'clicks', need: 300000,  ico: '🔥', name: 'Профі' },
+  { id: 'c20k', type: 'clicks', need: 500000,  ico: '💎', name: 'Легенда' },
+  { id: 'c50k', type: 'clicks', need: 1000000, ico: '👑', name: 'Король кліків' },
+  // за час у грі: need — кількість годин
+  { id: 't1',   type: 'time', need: 1,   ico: '⏳', name: 'Назад дороги немає...' },
+  { id: 't10',  type: 'time', need: 10,  ico: '🚀', name: 'Тільки вперед!' },
+  { id: 't20',  type: 'time', need: 20,  ico: '🧟', name: 'Я живий?' },
+  { id: 't50',  type: 'time', need: 50,  ico: '🏆', name: 'Кращий за...' },
+  { id: 't100', type: 'time', need: 100, ico: '🌟', name: 'Немає рівних...' },
 ];
+const tagGoal = x => x.type === 'time' ? x.need * 3600 : x.need;          // у кліках або секундах
+const tagValue = x => x.type === 'time' ? s.time : s.clicks;
 const tagById = id => TAGS.find(x => x.id === id);
-const tagUnlocked = id => { const x = tagById(id); return !!x && s.clicks >= x.need; };
+const tagUnlocked = id => { const x = tagById(id); return !!x && tagValue(x) >= tagGoal(x); };
 const tagText = id => { const x = tagById(id); return x ? x.ico + ' ' + x.name : ''; };
 if (!tagUnlocked(s.tag)) s.tag = '';
 
@@ -504,7 +514,15 @@ function showToast(text) {
 }
 
 const achEls = {};
+let achType = '';
 TAGS.forEach(x => {
+  if (x.type !== achType) {
+    achType = x.type;
+    const h = document.createElement('div');
+    h.className = 'achsec';
+    h.textContent = x.type === 'time' ? '⏱️ За час у грі' : '👆 За кліки';
+    $('ach-list').appendChild(h);
+  }
   const row = document.createElement('div');
   row.className = 'ach locked';
   row.innerHTML = '<span class="ai"></span><span class="ainfo"><b></b><small></small><div class="pbar"><i></i></div></span><span class="ast"></span>';
@@ -518,14 +536,16 @@ TAGS.forEach(x => {
 function updateAch() {
   let n = 0;
   TAGS.forEach(x => {
-    const e = achEls[x.id], ok = s.clicks >= x.need;
+    const e = achEls[x.id], val = tagValue(x), goal = tagGoal(x), ok = val >= goal;
     if (ok) n++;
     e.row.classList.toggle('locked', !ok);
     e.row.classList.toggle('on', s.tag === x.id);
     e.ai.textContent = ok ? x.ico : '🔒';
     e.name.textContent = x.name;
-    e.desc.textContent = 'Зробіть ' + x.need.toLocaleString('en-US') + ' кліків · ' + Math.min(s.clicks, x.need).toLocaleString('en-US') + '/' + x.need.toLocaleString('en-US');
-    e.fill.style.width = Math.min(100, s.clicks / x.need * 100) + '%';
+    e.desc.textContent = x.type === 'time'
+      ? 'Проведіть ' + x.need + ' год у грі · ' + fmtTime(Math.min(val, goal)) + ' / ' + x.need + ' год'
+      : 'Зробіть ' + x.need.toLocaleString('en-US') + ' кліків · ' + Math.min(s.clicks, x.need).toLocaleString('en-US') + '/' + x.need.toLocaleString('en-US');
+    e.fill.style.width = Math.min(100, val / goal * 100) + '%';
     e.st.textContent = s.tag === x.id ? '✓ Обрано' : ok ? 'Обрати' : '';
   });
   $('ach-h').textContent = '🏅 Досягнення: ' + n + '/' + TAGS.length;
@@ -535,7 +555,7 @@ $('ptitle').onclick = () => $('ach-h').scrollIntoView({ behavior: 'smooth', bloc
 function onClickCount() {
   s.clicks++;
   TAGS.forEach(x => {
-    if (s.clicks !== x.need) return;
+    if (x.type !== 'clicks' || s.clicks !== x.need) return;
     if (x.need === 1 && !s.tag) s.tag = x.id;   // перший тег одягається сам
     showToast('🏅 Нове досягнення: ' + x.name + '!');
     vibrate([30, 40, 60]);
@@ -993,9 +1013,9 @@ function applyCode(str) {
   s.avatar = cleanEmoji(o.avatar);
   s.pend = null;
   s.clicks = (Number.isFinite(o.clicks) && o.clicks >= 0) ? Math.floor(o.clicks) : 0;
+  s.time = (Number.isFinite(o.time) && o.time >= 0) ? o.time : 0;
   s.tag = typeof o.tag === 'string' ? o.tag : '';
   if (!tagUnlocked(s.tag)) s.tag = '';
-  s.time = (Number.isFinite(o.time) && o.time >= 0) ? o.time : 0;
   if (o.g && typeof o.g === 'object') { const n = x => (Number.isFinite(x) && x >= 0) ? x : 0; s.g = { p: n(o.g.p), w: n(o.g.w), b: n(o.g.b) }; }
   if (typeof o.uid === 'string' && /^[A-Za-z0-9_-]{4,64}$/.test(o.uid)) s.uid = o.uid;
   $('nick').value = s.name;
@@ -1046,7 +1066,15 @@ setInterval(() => {
   const now = Date.now(), dt = now - lastTick;
   lastTick = now;
   if (document.hidden) return;
+  const before = s.time;
   s.time += Math.min(dt, 5000) / 1000;
+  TAGS.forEach(x => {
+    if (x.type === 'time' && before < tagGoal(x) && s.time >= tagGoal(x)) {
+      showToast('🏅 Нове досягнення: ' + x.name);
+      vibrate([30, 40, 60]);
+      save();
+    }
+  });
   if ($('ov-prof').classList.contains('open')) $('st-time').textContent = fmtTime(s.time);
 }, 1000);
 document.addEventListener('visibilitychange', () => { lastTick = Date.now(); });
