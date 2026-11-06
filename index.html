@@ -383,7 +383,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 26;
+const APP_VERSION = 27;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -542,12 +542,14 @@ const TAGS = [
   { id: 't20',  type: 'time', need: 20,  ico: '🧟', name: 'Я живий?' },
   { id: 't50',  type: 'time', need: 50,  ico: '🏆', name: 'Кращий за...' },
   { id: 't100', type: 'time', need: 100, ico: '🌟', name: 'Немає рівних...' },
+  // за ігри в казино: need — кількість зіграних ігор; label — як тег виглядає в профілі
+  { id: 'g1k',  type: 'games', need: 1000, ico: '🪙', name: 'лудоман 🪙', label: 'лудоман 🪙' },
 ];
 const tagGoal = x => x.type === 'time' ? x.need * 3600 : x.type === 'special' ? 1 : x.need;          // у кліках або секундах
-const tagValue = x => x.type === 'time' ? s.time : x.type === 'special' ? (s.special.includes(x.id) ? 1 : 0) : s.clicks;
+const tagValue = x => x.type === 'time' ? s.time : x.type === 'games' ? s.g.p : x.type === 'special' ? (s.special.includes(x.id) ? 1 : 0) : s.clicks;
 const tagById = id => TAGS.find(x => x.id === id);
 const tagUnlocked = id => { const x = tagById(id); return !!x && tagValue(x) >= tagGoal(x); };
-const tagText = id => { const x = tagById(id); return x && x.type !== 'special' ? x.ico + ' ' + x.name : ''; };
+const tagText = id => { const x = tagById(id); return x && x.type !== 'special' ? (x.label || x.ico + ' ' + x.name) : ''; };
 const isSpecial = id => { const x = tagById(id); return !!x && x.type === 'special'; };
 // Стара версія могла одягнути особливий титул як звичайний тег — переносимо його у свій слот
 if (isSpecial(s.tag)) { if (!s.stitle) s.stitle = s.tag; s.tag = ''; }
@@ -585,7 +587,7 @@ TAGS.forEach(x => {
     achType = x.type;
     const h = document.createElement('div');
     h.className = 'achsec';
-    h.textContent = x.type === 'time' ? '⏱️ За час у грі' : x.type === 'special' ? '🎁 Особливі (за промокод)' : '👆 За кліки';
+    h.textContent = x.type === 'time' ? '⏱️ За час у грі' : x.type === 'games' ? '🎲 За ігри в казино' : x.type === 'special' ? '🎁 Особливі (за промокод)' : '👆 За кліки';
     $('ach-list').appendChild(h);
     if (x.type === 'special') achSpecialHead = h;
   }
@@ -618,6 +620,8 @@ function updateAch() {
     e.name.textContent = x.name;
     e.desc.textContent = x.type === 'special'
       ? 'Особливий титул за промокод. Можна носити разом зі звичайним тегом'
+      : x.type === 'games'
+        ? 'Зіграйте ' + x.need.toLocaleString('en-US') + ' ігор у казино · ' + Math.min(val, goal).toLocaleString('en-US') + '/' + x.need.toLocaleString('en-US')
       : x.type === 'time'
         ? 'Проведіть ' + x.need + ' год у грі · ' + fmtTime(Math.min(val, goal)) + ' / ' + x.need + ' год'
         : 'Зробіть ' + x.need.toLocaleString('en-US') + ' кліків · ' + Math.min(s.clicks, x.need).toLocaleString('en-US') + '/' + x.need.toLocaleString('en-US');
@@ -962,6 +966,7 @@ $('g-play').onclick = () => {
   creditPending();
   const N = gRange, pick = gPick, lucky = randInt(N), win = lucky === pick;
   s.score -= bet; s.g.p++;
+  TAGS.forEach(x => { if (x.type === 'games' && s.g.p === x.need) { showToast('🏅 Нове досягнення: ' + x.name); vibrate([30, 40, 60]); } });
   s.pend = { prize: win ? bet * multFor(N) : 0, bet };
   save(); render();
   gBusy = true;
