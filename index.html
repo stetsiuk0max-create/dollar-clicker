@@ -129,7 +129,10 @@
   #toast.show { transform: translate(-50%, 0); opacity: 1; visibility: visible; }
   .ptitle { cursor: default; }
   #ptitle { cursor: pointer; }
-  .achbtn { width: 100%; display: flex; justify-content: space-between; align-items: center; border: none; border-radius: 14px; padding: 14px 16px; background: #ffd54f; color: #3e2f00; font-size: 16px; font-weight: 800; }
+  .achbtn { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2px; border: none; border-radius: 14px; padding: 12px 6px; background: #ffd54f; color: #3e2f00; font-size: 15px; font-weight: 800; }
+  .stitle { color: #ffd54f; font-weight: 800; }
+  .achbtn small { font-size: 12px; font-weight: 700; opacity: .8; }
+  .achbtn.promo { background: #ce93d8; color: #2d0a35; }
   .achbtn:active { filter: brightness(.92); }
   .ach-cur { padding: 0 18px 8px; text-align: center; color: #ffd54f; font-weight: 700; }
   #ach-h { text-align: center; padding-top: 4px; }
@@ -250,7 +253,10 @@
       </div>
       <div class="coll-h" id="coll-h"></div>
       <div class="grid" id="grid"></div>
-      <div style="padding: 16px 14px 0"><button id="open-ach" class="achbtn" data-open="ov-ach"><span>🏅 Досягнення</span><span id="ach-count"></span></button></div>
+      <div style="padding: 16px 14px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+        <button id="open-ach" class="achbtn" data-open="ov-ach"><span>🏅 Досягнення</span><small id="ach-count"></small></button>
+        <button id="open-promo" class="achbtn promo" data-open="ov-promo"><span>🎁 Промокод</span><small>Ввести код ›</small></button>
+      </div>
       <div class="backup">
         <div class="coll-h">💾 Резервна копія прогресу</div>
         <textarea id="code" placeholder="Тут з'явиться код збереження. Щоб завантажити прогрес, вставте код сюди." spellcheck="false" autocomplete="off"></textarea>
@@ -261,6 +267,21 @@
         <div class="hint" id="code-msg"></div>
         <div class="ver" id="ver"></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Промокод -->
+<div class="overlay" id="ov-promo" style="z-index: 12">
+  <div class="sheet">
+    <div class="sheet-head"><h2>🎁 Промокод</h2><button class="close">✕</button></div>
+    <div class="scroll">
+      <div class="hint" style="padding: 0 18px 10px">Введіть промокод, щоб отримати особливу нагороду. Кожен код можна використати один раз.</div>
+      <div class="nick">
+        <input id="promo-input" placeholder="ПРОМОКОД" autocomplete="off" autocapitalize="characters" maxlength="32">
+        <button id="promo-go">OK</button>
+      </div>
+      <div class="ginfo" id="promo-msg"></div>
     </div>
   </div>
 </div>
@@ -359,7 +380,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 21;
+const APP_VERSION = 24;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -378,7 +399,7 @@ function cleanEmoji(str) {
 }
 const KEY = 'clicker_save_v2';
 const DEFAULT = { score: 1, total: 0, mult: 0, auto: 0 };
-let s = { ...DEFAULT, owned: [], avatar: '', g: { p: 0, w: 0, b: 0 }, pend: null, time: 0, clicks: 0, tag: '' };
+let s = { ...DEFAULT, owned: [], avatar: '', g: { p: 0, w: 0, b: 0 }, pend: null, time: 0, clicks: 0, tag: '', stitle: '', redeemed: [], special: [], promoBonus: 0 };
 try {
   const saved = JSON.parse(localStorage.getItem(KEY)) || {};
   s.score = saved.score ?? DEFAULT.score;
@@ -392,6 +413,10 @@ try {
   s.time = (Number.isFinite(saved.time) && saved.time >= 0) ? saved.time : 0;
   s.clicks = (Number.isFinite(saved.clicks) && saved.clicks >= 0) ? Math.floor(saved.clicks) : 0;
   s.tag = typeof saved.tag === 'string' ? saved.tag : '';
+  s.stitle = typeof saved.stitle === 'string' ? saved.stitle : '';
+  s.redeemed = Array.isArray(saved.redeemed) ? saved.redeemed.filter(Number.isFinite) : [];
+  s.special = Array.isArray(saved.special) ? saved.special.filter(x => typeof x === 'string') : [];
+  s.promoBonus = (Number.isFinite(saved.promoBonus) && saved.promoBonus >= 0) ? saved.promoBonus : 0;
   if (saved.g && typeof saved.g === 'object') {
     const n = x => (Number.isFinite(x) && x >= 0) ? x : 0;
     s.g = { p: n(saved.g.p), w: n(saved.g.w), b: n(saved.g.b) };
@@ -449,7 +474,7 @@ const SHOP = [
 ];
 
 // Бонус від речей з магазину: кожна річ додає до множника всього доходу
-const shopBonus = () => 1 + SHOP.reduce((a, it) => a + (isOwned(it.id) ? it.bonus : 0), 0);
+const shopBonus = () => 1 + s.promoBonus + SHOP.reduce((a, it) => a + (isOwned(it.id) ? it.bonus : 0), 0);
 const perClick = () => (1 + s.mult) * shopBonus();
 const perSec   = () => s.auto * shopBonus();
 const isOwned  = id => s.owned.includes(id);
@@ -505,6 +530,8 @@ const TAGS = [
   { id: 'c10k', type: 'clicks', need: 300000,  ico: '🔥', name: 'Профі' },
   { id: 'c20k', type: 'clicks', need: 500000,  ico: '💎', name: 'Легенда' },
   { id: 'c50k', type: 'clicks', need: 1000000, ico: '👑', name: 'Король кліків' },
+  // особливі: даються тільки за промокод (поки не отримано — приховані)
+  { id: 's_tester', type: 'special', need: 1, ico: '🎁', name: '=𖤂𝕋𝕖𝕤𝕥𝕖𝕣𖤂=' },
   // за час у грі: need — кількість годин
   { id: 't1',   type: 'time', need: 1,   ico: '⏳', name: 'Назад дороги немає...' },
   { id: 't10',  type: 'time', need: 10,  ico: '🚀', name: 'Тільки вперед!' },
@@ -512,12 +539,30 @@ const TAGS = [
   { id: 't50',  type: 'time', need: 50,  ico: '🏆', name: 'Кращий за...' },
   { id: 't100', type: 'time', need: 100, ico: '🌟', name: 'Немає рівних...' },
 ];
-const tagGoal = x => x.type === 'time' ? x.need * 3600 : x.need;          // у кліках або секундах
-const tagValue = x => x.type === 'time' ? s.time : s.clicks;
+const tagGoal = x => x.type === 'time' ? x.need * 3600 : x.type === 'special' ? 1 : x.need;          // у кліках або секундах
+const tagValue = x => x.type === 'time' ? s.time : x.type === 'special' ? (s.special.includes(x.id) ? 1 : 0) : s.clicks;
 const tagById = id => TAGS.find(x => x.id === id);
 const tagUnlocked = id => { const x = tagById(id); return !!x && tagValue(x) >= tagGoal(x); };
-const tagText = id => { const x = tagById(id); return x ? x.ico + ' ' + x.name : ''; };
+const tagText = id => { const x = tagById(id); return x && x.type !== 'special' ? x.ico + ' ' + x.name : ''; };
+const isSpecial = id => { const x = tagById(id); return !!x && x.type === 'special'; };
+// Стара версія могла одягнути особливий титул як звичайний тег — переносимо його у свій слот
+if (isSpecial(s.tag)) { if (!s.stitle) s.stitle = s.tag; s.tag = ''; }
 if (!tagUnlocked(s.tag)) s.tag = '';
+if (!isSpecial(s.stitle) || !tagUnlocked(s.stitle)) s.stitle = '';
+// Показує особливий титул (блакитний) і звичайний тег поруч
+function renderTitle(el, tagId, stitleId, empty) {
+  el.textContent = '';
+  let any = false;
+  if (isSpecial(stitleId)) {
+    const a = document.createElement('span');
+    a.className = 'stitle'; a.textContent = tagById(stitleId).name;
+    el.appendChild(a); any = true;
+  }
+  const r = tagId && !isSpecial(tagId) ? tagText(tagId) : '';
+  if (r) { if (any) el.appendChild(document.createTextNode(' ')); el.appendChild(document.createTextNode(r)); any = true; }
+  if (!any && empty) el.textContent = empty;
+  return any;
+}
 
 let toastTimer = 0;
 function showToast(text) {
@@ -530,42 +575,59 @@ function showToast(text) {
 
 const achEls = {};
 let achType = '';
+let achSpecialHead = null;
 TAGS.forEach(x => {
   if (x.type !== achType) {
     achType = x.type;
     const h = document.createElement('div');
     h.className = 'achsec';
-    h.textContent = x.type === 'time' ? '⏱️ За час у грі' : '👆 За кліки';
+    h.textContent = x.type === 'time' ? '⏱️ За час у грі' : x.type === 'special' ? '🎁 Особливі (за промокод)' : '👆 За кліки';
     $('ach-list').appendChild(h);
+    if (x.type === 'special') achSpecialHead = h;
   }
   const row = document.createElement('div');
   row.className = 'ach locked';
   row.innerHTML = '<span class="ai"></span><span class="ainfo"><b></b><small></small><div class="pbar"><i></i></div></span><span class="ast"></span>';
   row.onclick = () => {
     if (!tagUnlocked(x.id)) return;
-    s.tag = x.id; vibrate(15); save(); render();
+    if (x.type === 'special') s.stitle = (s.stitle === x.id ? '' : x.id);   // особливий титул: надіти / зняти
+    else s.tag = x.id;
+    vibrate(15); save(); render();
   };
   $('ach-list').appendChild(row);
   achEls[x.id] = { row, ai: row.querySelector('.ai'), name: row.querySelector('b'), desc: row.querySelector('small'), fill: row.querySelector('i'), st: row.querySelector('.ast') };
 });
 function updateAch() {
-  let n = 0;
+  let n = 0, got = 0;
+  const regular = TAGS.filter(x => x.type !== 'special').length;
   TAGS.forEach(x => {
     const e = achEls[x.id], val = tagValue(x), goal = tagGoal(x), ok = val >= goal;
-    if (ok) n++;
+    if (x.type === 'special') {
+      e.row.style.display = ok ? '' : 'none';
+      if (ok) got++;
+    } else if (ok) n++;
     e.row.classList.toggle('locked', !ok);
-    e.row.classList.toggle('on', s.tag === x.id);
+    const worn = x.type === 'special' ? s.stitle === x.id : s.tag === x.id;
+    e.row.classList.toggle('on', worn);
+    e.name.className = x.type === 'special' ? 'stitle' : '';
     e.ai.textContent = ok ? x.ico : '🔒';
     e.name.textContent = x.name;
-    e.desc.textContent = x.type === 'time'
-      ? 'Проведіть ' + x.need + ' год у грі · ' + fmtTime(Math.min(val, goal)) + ' / ' + x.need + ' год'
-      : 'Зробіть ' + x.need.toLocaleString('en-US') + ' кліків · ' + Math.min(s.clicks, x.need).toLocaleString('en-US') + '/' + x.need.toLocaleString('en-US');
+    e.desc.textContent = x.type === 'special'
+      ? 'Особливий титул за промокод. Можна носити разом зі звичайним тегом'
+      : x.type === 'time'
+        ? 'Проведіть ' + x.need + ' год у грі · ' + fmtTime(Math.min(val, goal)) + ' / ' + x.need + ' год'
+        : 'Зробіть ' + x.need.toLocaleString('en-US') + ' кліків · ' + Math.min(s.clicks, x.need).toLocaleString('en-US') + '/' + x.need.toLocaleString('en-US');
     e.fill.style.width = Math.min(100, val / goal * 100) + '%';
-    e.st.textContent = s.tag === x.id ? '✓ Обрано' : ok ? 'Обрати' : '';
+    e.st.textContent = worn ? (x.type === 'special' ? '✓ Надіто' : '✓ Обрано') : ok ? (x.type === 'special' ? 'Надіти' : 'Обрати') : '';
   });
-  $('ach-h').textContent = 'Відкрито: ' + n + '/' + TAGS.length;
-  $('ach-count').textContent = n + '/' + TAGS.length + ' ›';
-  $('ach-cur').textContent = 'Обраний тег: ' + (tagText(s.tag) || 'немає');
+  if (achSpecialHead) achSpecialHead.style.display = got ? '' : 'none';
+  $('ach-h').textContent = 'Відкрито: ' + n + '/' + regular;
+  $('ach-count').textContent = n + '/' + regular + ' ›';
+  const cur = $('ach-cur');
+  cur.textContent = 'Обрано: ';
+  const box = document.createElement('span');
+  renderTitle(box, s.tag, s.stitle, 'нічого');
+  cur.appendChild(box);
 }
 $('tag-none').onclick = () => { s.tag = ''; save(); render(); };
 $('ptitle').onclick = () => { $('ov-ach').classList.add('open'); render(); };
@@ -611,7 +673,8 @@ function render() {
   showDot($('dot-shop'), shopAfford);
 
   const n = s.owned.length;
-  $('ptitle').textContent = (tagText(s.tag) || 'Без тегу') + ' ›';
+  renderTitle($('ptitle'), s.tag, s.stitle, 'Без тегу');
+  $('ptitle').appendChild(document.createTextNode(' ›'));
   $('avatar').textContent = s.avatar || DEFAULT_AVATAR;
   $('st-clicks').textContent = s.clicks.toLocaleString('en-US');
   updateAch();
@@ -651,14 +714,14 @@ $('bill').addEventListener('pointerdown', e => {
 const LB_URL = 'https://cliker-b17da-default-rtdb.firebaseio.com';
 
 let lbSent = '';
-const lbSig = () => Math.floor(s.total) + '|' + Math.floor(s.score) + '|' + s.owned.length + '|' + s.mult + '|' + s.auto + '|' + s.avatar + '|' + Math.floor(s.time / 60) + '|' + s.tag;
+const lbSig = () => Math.floor(s.total) + '|' + Math.floor(s.score) + '|' + s.owned.length + '|' + s.mult + '|' + s.auto + '|' + s.avatar + '|' + Math.floor(s.time / 60) + '|' + s.tag + '|' + s.stitle;
 async function lbSubmit() {
   if (!LB_URL || !s.name) return;
   const total = Math.floor(s.total), sig = lbSig();
   const r = await fetch(`${LB_URL}/scores/${s.uid}.json`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: s.name, total, bal: Math.floor(s.score), items: s.owned.length, owned: s.owned, click: Math.round(perClick() * 10) / 10, sec: Math.round(perSec() * 10) / 10, auto: s.auto, av: s.avatar || '', pt: Math.floor(s.time), tag: s.tag, t: Date.now() })
+    body: JSON.stringify({ name: s.name, total, bal: Math.floor(s.score), items: s.owned.length, owned: s.owned, click: Math.round(perClick() * 10) / 10, sec: Math.round(perSec() * 10) / 10, auto: s.auto, av: s.avatar || '', pt: Math.floor(s.time), tag: s.tag, stag: s.stitle, t: Date.now() })
   });
   if (r.ok) lbSent = sig;
 }
@@ -742,8 +805,7 @@ function showPlayer(v, rank) {
   const owned = ownedList(v.owned);
   const count = playerCount(v);
   $('pl-name').textContent = String(v.name || '?').slice(0, 16);
-  const tg = tagText(typeof v.tag === 'string' ? v.tag : '');
-  $('pl-title').textContent = tg;
+  const tg = renderTitle($('pl-title'), typeof v.tag === 'string' ? v.tag : '', typeof v.stag === 'string' ? v.stag : '', '');
   $('pl-title').style.display = tg ? '' : 'none';
   $('pl-avatar').textContent = avatarOf(v);
   $('pl-rank').textContent = (['🥇', '🥈', '🥉'][rank - 1] || '') + ' ' + rank + (lbTab === 'total' ? ' місце за зароблені гроші' : ' місце за балансом');
@@ -912,9 +974,61 @@ $('g-play').onclick = () => {
   }, 90);
 };
 
+/* ---------- Промокоди ---------- */
+// Щоб додати код: node promo_hash.js КОД → вставте число в h. Код пишеться в нього НЕ текстом.
+// Нагороди: money — гроші, bonus — постійне збільшення всього доходу (+×), tag — особливий тег.
+const PROMOS = [
+  { h: 5522816553543269, tag: 's_tester' },     // TESTER-2026: особливий титул «=𖤂𝕋𝕖𝕤𝕥𝕖𝕣𖤂=»
+];
+const cyrb53 = (str, seed = 0) => {
+  let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+  for (let i = 0, ch; i < str.length; i++) {
+    ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return 4294967296 * (2097151 & h2) + (h1 >>> 0);
+};
+function redeemPromo(raw) {
+  const code = String(raw || '').toUpperCase().replace(/\s+/g, '');
+  if (!code) return { ok: false, msg: 'Введіть промокод' };
+  const h = cyrb53('dc-promo-v1|' + code);
+  const p = PROMOS.find(x => x.h === h);
+  if (!p) return { ok: false, msg: '❌ Такого промокоду не існує' };
+  if (s.redeemed.includes(h)) return { ok: false, msg: '⚠️ Ви вже використали цей промокод' };
+  const parts = [];
+  s.redeemed.push(h);
+  if (p.money) { s.score += p.money; parts.push('+' + fmt(p.money)); }
+  if (p.bonus) { s.promoBonus += p.bonus; parts.push('весь дохід +×' + p.bonus); }
+  const tg = p.tag && tagById(p.tag);
+  if (tg) {
+    if (!s.special.includes(tg.id)) s.special.push(tg.id);
+    if (!s.stitle) s.stitle = tg.id;            // перший особливий титул одягається сам
+    parts.push('титул «' + tg.name + '»');
+  }
+  save(); render();
+  return { ok: true, msg: '✅ Промокод активовано! ' + parts.join(', ') };
+}
+function doPromo() {
+  const r = redeemPromo($('promo-input').value);
+  const m = $('promo-msg');
+  m.textContent = r.msg;
+  m.style.color = r.ok ? '#a5f3b0' : '#ffab91';
+  if (r.ok) { $('promo-input').value = ''; vibrate([30, 40, 60]); }
+}
+$('promo-go').onclick = doPromo;
+$('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPromo(); });
+
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 22, date: '6 листопада', title: 'Промокоди', items: [
+    '🎁 У «Профілі» з’явилася кнопка «Промокод»: введіть код і отримайте особливу нагороду',
+    '🎟️ Кожен код можна використати один раз. Нагородою можуть бути гроші, бонус до доходу або особливий тег',
+    '🏷️ Особливі теги з’являються в досягненнях тільки після отримання',
+  ]},
   { v: 13, date: '3 листопада', title: 'Досягнення і теги', items: [
     '🏅 У «Профілі» з’явилися досягнення за кліки: 1, 100, 1 000, 5 000, 10 000, 20 000 і 50 000',
     '🏷️ За кожне досягнення відкривається тег, який можна обрати й показати в профілі',
@@ -1013,7 +1127,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) chec
 /* ---------- Код збереження ---------- */
 function makeCode() {
   creditPending();
-  const o = { v: 1, score: s.score, total: s.total, mult: s.mult, auto: s.auto, owned: s.owned, name: s.name, uid: s.uid, avatar: s.avatar, g: s.g, time: Math.floor(s.time), clicks: s.clicks, tag: s.tag };
+  const o = { v: 1, score: s.score, total: s.total, mult: s.mult, auto: s.auto, owned: s.owned, name: s.name, uid: s.uid, avatar: s.avatar, g: s.g, time: Math.floor(s.time), clicks: s.clicks, tag: s.tag, stitle: s.stitle, redeemed: s.redeemed, special: s.special, promoBonus: s.promoBonus };
   return 'DC1-' + btoa(unescape(encodeURIComponent(JSON.stringify(o))));
 }
 function applyCode(str) {
@@ -1029,10 +1143,16 @@ function applyCode(str) {
   s.name = typeof o.name === 'string' ? o.name.slice(0, 16) : '';
   s.avatar = cleanEmoji(o.avatar);
   s.pend = null;
+  s.redeemed = Array.isArray(o.redeemed) ? o.redeemed.filter(Number.isFinite) : [];
+  s.special = Array.isArray(o.special) ? o.special.filter(x => TAGS.some(y => y.id === x && y.type === 'special')) : [];
+  s.promoBonus = (Number.isFinite(o.promoBonus) && o.promoBonus >= 0) ? o.promoBonus : 0;
   s.clicks = (Number.isFinite(o.clicks) && o.clicks >= 0) ? Math.floor(o.clicks) : 0;
   s.time = (Number.isFinite(o.time) && o.time >= 0) ? o.time : 0;
   s.tag = typeof o.tag === 'string' ? o.tag : '';
+  s.stitle = typeof o.stitle === 'string' ? o.stitle : '';
+  if (isSpecial(s.tag)) { if (!s.stitle) s.stitle = s.tag; s.tag = ''; }
   if (!tagUnlocked(s.tag)) s.tag = '';
+  if (!isSpecial(s.stitle) || !tagUnlocked(s.stitle)) s.stitle = '';
   if (o.g && typeof o.g === 'object') { const n = x => (Number.isFinite(x) && x >= 0) ? x : 0; s.g = { p: n(o.g.p), w: n(o.g.w), b: n(o.g.b) }; }
   if (typeof o.uid === 'string' && /^[A-Za-z0-9_-]{4,64}$/.test(o.uid)) s.uid = o.uid;
   $('nick').value = s.name;
