@@ -129,6 +129,10 @@
   #toast.show { transform: translate(-50%, 0); opacity: 1; visibility: visible; }
   .ptitle { cursor: default; }
   #ptitle { cursor: pointer; }
+  .achbtn { width: 100%; display: flex; justify-content: space-between; align-items: center; border: none; border-radius: 14px; padding: 14px 16px; background: #ffd54f; color: #3e2f00; font-size: 16px; font-weight: 800; }
+  .achbtn:active { filter: brightness(.92); }
+  .ach-cur { padding: 0 18px 8px; text-align: center; color: #ffd54f; font-weight: 700; }
+  #ach-h { text-align: center; padding-top: 4px; }
   .achsec { font-size: 13px; font-weight: 700; color: #b9f6ca; padding: 6px 4px 0; }
   .ach { display: flex; align-items: center; gap: 10px; background: #1f4a30; border-radius: 12px; padding: 10px 12px; cursor: pointer; }
   .ach.locked { opacity: .55; cursor: default; }
@@ -246,11 +250,7 @@
       </div>
       <div class="coll-h" id="coll-h"></div>
       <div class="grid" id="grid"></div>
-      <div class="coll-h" id="ach-h" style="padding-top: 16px"></div>
-      <div class="testnote">🧪 Досягнення поки в тестовому режимі: назви й умови можуть змінитися</div>
-      <div class="hint" style="padding: 0 18px 8px">Торкніться відкритого досягнення, щоб обрати його тегом</div>
-      <div id="ach-list" style="display: grid; gap: 8px; padding: 0 14px"></div>
-      <div style="padding: 8px 14px 0"><button id="tag-none" class="tagnone">✖ Без тегу</button></div>
+      <div style="padding: 16px 14px 0"><button id="open-ach" class="achbtn" data-open="ov-ach"><span>🏅 Досягнення</span><span id="ach-count"></span></button></div>
       <div class="backup">
         <div class="coll-h">💾 Резервна копія прогресу</div>
         <textarea id="code" placeholder="Тут з'явиться код збереження. Щоб завантажити прогрес, вставте код сюди." spellcheck="false" autocomplete="off"></textarea>
@@ -261,6 +261,21 @@
         <div class="hint" id="code-msg"></div>
         <div class="ver" id="ver"></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Досягнення -->
+<div class="overlay" id="ov-ach" style="z-index: 12">
+  <div class="sheet">
+    <div class="sheet-head"><h2>🏅 Досягнення</h2><button class="close">✕</button></div>
+    <div class="scroll">
+      <div class="coll-h" id="ach-h"></div>
+      <div class="ach-cur" id="ach-cur"></div>
+      <div class="testnote">🧪 Досягнення поки в тестовому режимі: назви й умови можуть змінитися</div>
+      <div class="hint" style="padding: 0 18px 8px">Торкніться відкритого досягнення, щоб обрати його тегом</div>
+      <div id="ach-list" style="display: grid; gap: 8px; padding: 0 14px"></div>
+      <div style="padding: 8px 14px 0"><button id="tag-none" class="tagnone">✖ Без тегу</button></div>
     </div>
   </div>
 </div>
@@ -344,7 +359,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 20;
+const APP_VERSION = 21;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -548,10 +563,12 @@ function updateAch() {
     e.fill.style.width = Math.min(100, val / goal * 100) + '%';
     e.st.textContent = s.tag === x.id ? '✓ Обрано' : ok ? 'Обрати' : '';
   });
-  $('ach-h').textContent = '🏅 Досягнення: ' + n + '/' + TAGS.length;
+  $('ach-h').textContent = 'Відкрито: ' + n + '/' + TAGS.length;
+  $('ach-count').textContent = n + '/' + TAGS.length + ' ›';
+  $('ach-cur').textContent = 'Обраний тег: ' + (tagText(s.tag) || 'немає');
 }
 $('tag-none').onclick = () => { s.tag = ''; save(); render(); };
-$('ptitle').onclick = () => $('ach-h').scrollIntoView({ behavior: 'smooth', block: 'start' });
+$('ptitle').onclick = () => { $('ov-ach').classList.add('open'); render(); };
 function onClickCount() {
   s.clicks++;
   TAGS.forEach(x => {
