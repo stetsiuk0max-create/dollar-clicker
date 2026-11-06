@@ -61,7 +61,7 @@
   .sheet-head h2 { margin: 0; font-size: 22px; }
   .close { border: none; background: #2d5a3d; color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; }
   .balance { padding: 0 18px 10px; color: #b9f6ca; font-weight: 700; }
-  .list { overflow-y: auto; padding: 0 14px calc(16px + env(safe-area-inset-bottom)); display: grid; gap: 8px; -webkit-overflow-scrolling: touch; }
+  .list { overflow-y: auto; padding: 0 14px calc(16px + env(safe-area-inset-bottom)); display: grid; gap: 8px; -webkit-overflow-scrolling: touch; grid-template-columns: minmax(0, 1fr); overflow-x: hidden; }
   .item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border: none; border-radius: 14px; background: #1f4a30; color: #fff; text-align: left; font-size: 15px; }
   .item:disabled { opacity: .45; }
   .item:not(:disabled):active { background: #2a6340; }
@@ -78,7 +78,7 @@
   .nick { display: flex; gap: 8px; padding: 0 14px 10px; }
   .nick input { flex: 1; min-width: 0; padding: 10px 12px; border: 2px solid #2d5a3d; border-radius: 12px; background: #0f2417; color: #fff; font-size: 16px; -webkit-user-select: text; user-select: text; }
   .nick button { border: none; border-radius: 12px; padding: 0 18px; background: #ffd54f; color: #3e2f00; font-weight: 800; font-size: 15px; }
-  .row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #1f4a30; border-radius: 12px; }
+  .row { min-width: 0; display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #1f4a30; border-radius: 12px; }
   .row.me { background: #2e7d32; }
   .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 14px 8px; }
   .tab { border: none; border-radius: 12px; padding: 10px 6px; background: #1f4a30; color: #fff; font-size: 14px; font-weight: 700; }
@@ -130,9 +130,11 @@
   .ptitle { cursor: default; }
   #ptitle { cursor: pointer; }
   .achbtn { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2px; border: none; border-radius: 14px; padding: 12px 6px; background: #ffd54f; color: #3e2f00; font-size: 15px; font-weight: 800; }
-  .nmw { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .nmw { flex: 1; min-width: 0; overflow: hidden; display: flex; flex-direction: column; }
+  .sub > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .nmw .nm { flex: none; }
-  .sub { font-size: 11px; line-height: 1.3; opacity: .95; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sub { font-size: 13px; line-height: 1.35; opacity: .95; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stitle.small { font-size: 10px; }
   .stitle { color: #ffd54f; font-weight: 800; }
   .achbtn small { font-size: 12px; font-weight: 700; opacity: .8; }
   .achbtn.promo { background: #ce93d8; color: #2d0a35; }
@@ -383,7 +385,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 27;
+const APP_VERSION = 29;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -556,18 +558,24 @@ if (isSpecial(s.tag)) { if (!s.stitle) s.stitle = s.tag; s.tag = ''; }
 if (!tagUnlocked(s.tag)) s.tag = '';
 if (!isSpecial(s.stitle) || !tagUnlocked(s.stitle)) s.stitle = '';
 // Показує особливий титул (блакитний) і звичайний тег поруч
-function renderTitle(el, tagId, stitleId, empty) {
+function renderTitle(el, tagId, stitleId, empty, lb) {
+  // lb = true: рейтинг — звичайний тег великий і першим, особливий титул маленький після нього
   el.textContent = '';
-  let any = false;
+  const parts = [];
   if (isSpecial(stitleId)) {
     const a = document.createElement('span');
-    a.className = 'stitle'; a.textContent = tagById(stitleId).name;
-    el.appendChild(a); any = true;
+    a.className = lb ? 'stitle small' : 'stitle'; a.textContent = tagById(stitleId).name;
+    parts.push(a);
   }
   const r = tagId && !isSpecial(tagId) ? tagText(tagId) : '';
-  if (r) { if (any) el.appendChild(document.createTextNode(' ')); el.appendChild(document.createTextNode(r)); any = true; }
-  if (!any && empty) el.textContent = empty;
-  return any;
+  if (r) {
+    const b = document.createElement('span');
+    b.textContent = r; if (lb) b.className = 'rtag';
+    if (lb) parts.unshift(b); else parts.push(b);
+  }
+  parts.forEach((n, i) => { if (i && !lb) el.appendChild(document.createTextNode(' ')); el.appendChild(n); });
+  if (!parts.length && empty) el.textContent = empty;
+  return parts.length > 0;
 }
 
 let toastTimer = 0;
@@ -788,7 +796,7 @@ async function lbRefresh(skipSubmit) {
       const av = document.createElement('span'); av.className = 'av'; av.textContent = avatarOf(v);
       const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = String(v.name || '?').slice(0, 16);
       const sub = document.createElement('span'); sub.className = 'sub';
-      const hasTitle = renderTitle(sub, typeof v.tag === 'string' ? v.tag : '', typeof v.stag === 'string' ? v.stag : '', '');
+      const hasTitle = renderTitle(sub, typeof v.tag === 'string' ? v.tag : '', typeof v.stag === 'string' ? v.stag : '', '', true);
       const nmw = document.createElement('span'); nmw.className = 'nmw';
       nmw.appendChild(nm);
       if (hasTitle) nmw.appendChild(sub);
