@@ -130,6 +130,9 @@
   .ptitle { cursor: default; }
   #ptitle { cursor: pointer; }
   .achbtn { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2px; border: none; border-radius: 14px; padding: 12px 6px; background: #ffd54f; color: #3e2f00; font-size: 15px; font-weight: 800; }
+  .nmw { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .nmw .nm { flex: none; }
+  .sub { font-size: 11px; line-height: 1.3; opacity: .95; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .stitle { color: #ffd54f; font-weight: 800; }
   .achbtn small { font-size: 12px; font-weight: 700; opacity: .8; }
   .achbtn.promo { background: #ce93d8; color: #2d0a35; }
@@ -380,7 +383,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 24;
+const APP_VERSION = 26;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -532,6 +535,7 @@ const TAGS = [
   { id: 'c50k', type: 'clicks', need: 1000000, ico: '👑', name: 'Король кліків' },
   // особливі: даються тільки за промокод (поки не отримано — приховані)
   { id: 's_tester', type: 'special', need: 1, ico: '🎁', name: '=𖤂𝕋𝕖𝕤𝕥𝕖𝕣𖤂=' },
+  { id: 's_owner',  type: 'special', need: 1, ico: '🎁', name: '|=>ВЛАСНИК<=|' },
   // за час у грі: need — кількість годин
   { id: 't1',   type: 'time', need: 1,   ico: '⏳', name: 'Назад дороги немає...' },
   { id: 't10',  type: 'time', need: 10,  ico: '🚀', name: 'Тільки вперед!' },
@@ -779,9 +783,14 @@ async function lbRefresh(skipSubmit) {
       const rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = ['🥇', '🥈', '🥉'][i] || String(i + 1);
       const av = document.createElement('span'); av.className = 'av'; av.textContent = avatarOf(v);
       const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = String(v.name || '?').slice(0, 16);
+      const sub = document.createElement('span'); sub.className = 'sub';
+      const hasTitle = renderTitle(sub, typeof v.tag === 'string' ? v.tag : '', typeof v.stag === 'string' ? v.stag : '', '');
+      const nmw = document.createElement('span'); nmw.className = 'nmw';
+      nmw.appendChild(nm);
+      if (hasTitle) nmw.appendChild(sub);
       const sc = document.createElement('span'); sc.className = 'sc'; sc.textContent = fmt(Number(lbTab === 'total' ? v.total : v.bal) || 0);
       const ch = document.createElement('span'); ch.className = 'chev'; ch.textContent = '›';
-      d.append(rk, av, nm, sc, ch);
+      d.append(rk, av, nmw, sc, ch);
       d.onclick = () => showPlayer(v, i + 1);
       box.appendChild(d);
     });
@@ -979,6 +988,7 @@ $('g-play').onclick = () => {
 // Нагороди: money — гроші, bonus — постійне збільшення всього доходу (+×), tag — особливий тег.
 const PROMOS = [
   { h: 5522816553543269, tag: 's_tester' },     // TESTER-2026: особливий титул «=𖤂𝕋𝕖𝕤𝕥𝕖𝕣𖤂=»
+  { h: 3195057727717327, tag: 's_owner' },             // ДОЛАР-ВЛАСНИК: особливий титул «|=>ВЛАСНИК<=|»
 ];
 const cyrb53 = (str, seed = 0) => {
   let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
@@ -991,11 +1001,15 @@ const cyrb53 = (str, seed = 0) => {
   h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
   return 4294967296 * (2097151 & h2) + (h1 >>> 0);
 };
+// Схожі літери (латиниця ↔ кирилиця), щоб код спрацював і при змішаній розкладці
+const LAT = 'ABCEHKMOPTXI', CYR = 'АВСЕНКМОРТХІ';
+const swapLetters = (str, from, to) => str.replace(/./g, c => { const i = from.indexOf(c); return i < 0 ? c : to[i]; });
 function redeemPromo(raw) {
   const code = String(raw || '').toUpperCase().replace(/\s+/g, '');
   if (!code) return { ok: false, msg: 'Введіть промокод' };
-  const h = cyrb53('dc-promo-v1|' + code);
-  const p = PROMOS.find(x => x.h === h);
+  const hs = [...new Set([code, swapLetters(code, LAT, CYR), swapLetters(code, CYR, LAT)])].map(c => cyrb53('dc-promo-v1|' + c));
+  const p = PROMOS.find(x => hs.includes(x.h));
+  const h = p && p.h;
   if (!p) return { ok: false, msg: '❌ Такого промокоду не існує' };
   if (s.redeemed.includes(h)) return { ok: false, msg: '⚠️ Ви вже використали цей промокод' };
   const parts = [];
