@@ -80,7 +80,7 @@
   .nick button { border: none; border-radius: 12px; padding: 0 18px; background: #ffd54f; color: #3e2f00; font-weight: 800; font-size: 15px; }
   .row { min-width: 0; display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #1f4a30; border-radius: 12px; }
   .row.me { background: #2e7d32; }
-  .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 14px 8px; }
+  .tabs { display: grid; grid-template-columns: 3fr 2fr; gap: 8px; padding: 0 14px 8px; }
   .tab { border: none; border-radius: 12px; padding: 10px 6px; background: #1f4a30; color: #fff; font-size: 14px; font-weight: 700; }
   .tab.active { background: #ffd54f; color: #3e2f00; }
   .lb-cap { padding: 0 18px 8px; font-size: 13px; color: #b9f6ca; text-align: center; }
@@ -375,8 +375,8 @@
       <button id="nick-save">OK</button>
     </div>
     <div class="tabs">
-      <button class="tab active" id="tab-total">💰 Зароблено</button>
-      <button class="tab" id="tab-bal">👛 Баланс</button>
+      <button class="tab active" id="tab-bal">👛 Баланс</button>
+      <button class="tab" id="tab-total">💰 Зароблено</button>
     </div>
     <div class="lb-cap" id="lb-cap"></div>
     <div class="list" id="list-lb"></div>
@@ -385,7 +385,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 29;
+const APP_VERSION = 30;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -742,7 +742,7 @@ async function lbSubmit() {
   if (r.ok) lbSent = sig;
 }
 
-let lbTab = 'total';
+let lbTab = 'bal';   // головна таблиця — за балансом
 
 const ownedList = x => (Array.isArray(x) ? x : (x && typeof x === 'object' ? Object.values(x) : []))
   .filter(id => SHOP.some(i => i.id === id));
