@@ -102,6 +102,8 @@
   .news-date { font-size: 12px; opacity: .65; white-space: nowrap; }
   .news-new { display: inline-block; background: #ffd54f; color: #3e2f00; font-size: 11px; font-weight: 800; border-radius: 8px; padding: 2px 7px; margin-left: 6px; vertical-align: middle; }
   .news-item ul { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.5; }
+  .item.soon { opacity: .75; cursor: default; }
+  .item.soon .price { color: #81d4fa; }
   .bon { color: #ffd54f; font-weight: 700; opacity: 1 !important; }
   #open-game { background: #ff8a65; color: #3a1100; }
   .gsec { padding: 4px 18px 6px; font-weight: 700; font-size: 14px; }
@@ -385,7 +387,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 30;
+const APP_VERSION = 31;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -464,8 +466,10 @@ const UPGRADES = [
     buy: () => s.auto++ },
 ];
 
-/* ---------- Магазин (кожна річ купується один раз) ---------- */
-const SHOP = [
+/* ---------- Магазин ---------- */
+// Старий магазин прибрано (глобальне оновлення). Список лишаємо, щоб потім врахувати
+// попередні покупки гравців (вони досі лежать у s.owned). Нічого не рахує й не показується.
+const LEGACY_SHOP = [
   { id: 'phone',  ico: '📱', name: 'Телефон',    desc: 'Новенький смартфон',         price: 300, bonus: 0.2 },
   { id: 'laptop', ico: '💻', name: 'Ноутбук',    desc: 'Працювати можна звідусіль',  price: 1000, bonus: 0.3 },
   { id: 'watch',  ico: '⌚', name: 'Годинник',   desc: 'Швейцарський, дуже дорогий', price: 3000, bonus: 0.4 },
@@ -476,6 +480,11 @@ const SHOP = [
   { id: 'ship',   ico: '🚢', name: 'Корабель',   desc: 'Круїзний лайнер для друзів', price: 5000000, bonus: 1.5 },
   { id: 'island', ico: '🏝️', name: 'Острів',     desc: 'Приватний острів у океані',  price: 25000000, bonus: 2.0 },
   { id: 'rocket', ico: '🚀', name: 'Ракета',     desc: 'Політ на Місяць',            price: 100000000, bonus: 3.0 },
+];
+const SHOP = [];   // нові товари (будинки, машини...) додамо в оновленні
+const COMING_SOON = [
+  { ico: '🏠', name: 'Дім', desc: 'Кілька варіантів на вибір' },
+  { ico: '🚗', name: 'Машина', desc: 'Обирайте свою' },
 ];
 
 // Бонус від речей з магазину: кожна річ додає до множника всього доходу
@@ -519,6 +528,12 @@ SHOP.forEach(it => {
   c.innerHTML = `<div class="e">🔒</div><small>???</small>`;
   $('grid').appendChild(c);
   cellEls[it.id] = { c, e: c.querySelector('.e'), n: c.querySelector('small') };
+});
+if (!SHOP.length) COMING_SOON.forEach(it => {
+  const d = document.createElement('div');
+  d.className = 'item soon';
+  d.innerHTML = `<span class="ico">${it.ico}</span><span class="info"><b>${it.name}</b><small>${it.desc}</small></span><span class="price">Скоро</span>`;
+  $('list-shop').appendChild(d);
 });
 
 const DEFAULT_AVATAR = '🙂';
@@ -697,11 +712,12 @@ function render() {
   $('pname').textContent = s.name || 'Гравець';
   $('st-bal').textContent = fmt(s.score);
   $('st-total').textContent = fmt(s.total);
-  $('shop-cap').textContent = `⚡ Бонус від речей: весь дохід ×${(Math.round(shopBonus() * 100) / 100)}`;
+  $('shop-cap').textContent = SHOP.length ? `⚡ Бонус від речей: весь дохід ×${(Math.round(shopBonus() * 100) / 100)}` : '🚧 Магазин оновлюється! Скоро тут з’являться будинки, машини та багато іншого.';
   $('st-click').textContent = fmtR(perClick());
   $('st-sec').textContent = fmtR(perSec());
   $('st-time').textContent = fmtTime(s.time);
   $('coll-h').textContent = `Колекція: ${n}/${SHOP.length}`;
+  $('coll-h').style.display = $('grid').style.display = SHOP.length ? '' : 'none';
 }
 
 function pop(x, y, text) {
@@ -836,6 +852,10 @@ function showPlayer(v, rank) {
   $('pl-sec').textContent = fmtR(num(v.sec));
   $('pl-time').textContent = v.pt === undefined ? '—' : fmtTime(num(v.pt));
   $('pl-items').textContent = count + '/' + SHOP.length;
+  const noShop = !SHOP.length;
+  $('pl-items').parentElement.style.display = noShop ? 'none' : '';
+  $('pl-auto').parentElement.style.gridColumn = noShop ? '1 / -1' : '';
+  $('pl-coll').style.display = noShop ? 'none' : '';
   $('pl-auto').textContent = v.auto === undefined ? '—' : String(Math.floor(num(v.auto)));
   const grid = $('pl-grid');
   grid.innerHTML = '';
@@ -844,7 +864,7 @@ function showPlayer(v, rank) {
     grid.style.display = 'none';
   } else {
     $('pl-coll').textContent = `Колекція: ${count}/${SHOP.length}`;
-    grid.style.display = '';
+    grid.style.display = noShop ? 'none' : '';
     SHOP.forEach(it => {
       const have = owned.includes(it.id);
       const c = document.createElement('div');
@@ -1051,6 +1071,12 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 31, date: '10 листопада', title: 'Скоро глобальне оновлення! 🚧', items: [
+    '🛒 Магазин оновлюється: старі речі прибрано, їхні бонуси до доходу більше не діють',
+    '🏠 Скоро в магазині з’являться будинки та 🚗 машини, а далі й багато іншого',
+    '✨ Ви зможете обирати, які саме речі купувати',
+    '💾 Ваші попередні покупки збережено, подробиці розповімо в оновленні',
+  ]},
   { v: 22, date: '6 листопада', title: 'Промокоди', items: [
     '🎁 У «Профілі» з’явилася кнопка «Промокод»: введіть код і отримайте особливу нагороду',
     '🎟️ Кожен код можна використати один раз. Нагородою можуть бути гроші, бонус до доходу або особливий тег',
@@ -1166,7 +1192,7 @@ function applyCode(str) {
   s.total = num(o.total);
   s.mult = Math.floor(num(o.mult));
   s.auto = Math.floor(num(o.auto));
-  s.owned = Array.isArray(o.owned) ? o.owned.filter(id => SHOP.some(i => i.id === id)) : [];
+  s.owned = Array.isArray(o.owned) ? o.owned.filter(id => typeof id === 'string') : [];
   s.name = typeof o.name === 'string' ? o.name.slice(0, 16) : '';
   s.avatar = cleanEmoji(o.avatar);
   s.pend = null;
