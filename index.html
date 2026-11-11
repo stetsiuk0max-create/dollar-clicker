@@ -411,7 +411,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 37;
+const APP_VERSION = 39;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -536,6 +536,9 @@ const shopBonus = () => 1 + s.promoBonus;   // речі з магазину до
 const perClick = () => (1 + s.mult) * shopBonus();
 const perSec   = () => s.auto * shopBonus();
 const isOwned  = id => s.owned.includes(id);
+// Тимчасово прибрані речі: якщо хтось встиг купити, повертаємо повну ціну (один раз). Щоб повернути річ у гру, перенесіть її рядок у SHOP.
+const WITHDRAWN = [{ id: 'car2', price: 25000 }];   // Lada 2109 (картинка car2.webp збережена окремо)
+WITHDRAWN.forEach(w => { if (s.owned.includes(w.id)) { s.owned = s.owned.filter(x => x !== w.id); s.score += w.price; } });
 
 function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
