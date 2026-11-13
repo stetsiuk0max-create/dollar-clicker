@@ -112,8 +112,8 @@
   .bigpic .pic { width: 100%; height: 170px; }
   .sellbtn { width: 100%; border: none; border-radius: 14px; padding: 15px; background: #ffd54f; color: #3e2f00; font-size: 17px; font-weight: 800; }
   .sellbtn:active { filter: brightness(.92); }
-  .cell.own { cursor: pointer; }
-  .cell.own:active { background: #2a6340; }
+  .cell.mine { cursor: pointer; }
+  .cell.mine:active { background: #2a6340; }
   .item.back { background: transparent; border: 1px solid #2d5a3d; justify-content: center; font-weight: 700; }
   .item.soon { opacity: .75; cursor: default; }
   .item.soon .price { color: #81d4fa; }
@@ -199,9 +199,12 @@
   .stat b { font-size: 16px; }
   .coll-h { padding: 4px 18px 8px; font-weight: 700; }
   .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 14px; }
+  .gcol { display: flex; flex-direction: column; gap: 10px; min-width: 0; align-content: start; }
+  .gcol-h { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: .7; text-align: center; font-weight: 700; }
   .cell { background: #1f4a30; border-radius: 12px; text-align: center; padding: 12px 6px; }
   .cell .e { font-size: 30px; }
   .cell small { display: block; font-size: 13px; font-weight: 700; margin-top: 6px; opacity: .9; }
+  .cell.empty { background: transparent; border: 2px dashed #2d5a3d; min-height: 124px; display: flex; align-items: center; justify-content: center; opacity: .6; font-size: 26px; }
   .cell.locked { opacity: .35; filter: grayscale(1); }
 </style>
 </head>
@@ -411,7 +414,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 44;
+const APP_VERSION = 47;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -580,12 +583,33 @@ SHOP.forEach(it => {
   shopEls[it.id] = { b, price: b.querySelector('.price') };
 
   const c = document.createElement('div');
-  c.className = 'cell locked';
+  c.className = 'cell';
   c.innerHTML = `<div class="e">🔒</div><small>???</small>`;
-  $('grid').appendChild(c);
+  colFor($('grid'), it.cat).appendChild(c);
   cellEls[it.id] = { c, e: c.querySelector('.e'), n: c.querySelector('small') };
   c.onclick = () => { if (isOwned(it.id)) openItem(it); };
 });
+
+// Колекція у двох стовпчиках: машини зліва, хати справа
+function colFor(grid, cat) {
+  if (!grid.querySelector('.gcol')) {
+    CATS.forEach(c => {
+      const col = document.createElement('div'); col.className = 'gcol'; col.dataset.cat = c.id;
+      const hd = document.createElement('div'); hd.className = 'gcol-h'; hd.textContent = `${c.ico} ${c.name}`;
+      col.appendChild(hd); grid.appendChild(col);
+    });
+  }
+  return grid.querySelector(`.gcol[data-cat="${cat}"]`);
+}
+
+// Порожні місця: якщо в стовпчику нічого немає, показуємо одне пусте місце
+function fillEmpty(grid, haveByCat) {
+  grid.querySelectorAll('.cell.empty').forEach(e => e.remove());
+  CATS.forEach(c => { if (!haveByCat[c.id]) {
+    const e = document.createElement('div'); e.className = 'cell empty'; e.textContent = '＋';
+    colFor(grid, c.id).appendChild(e);
+  } });
+}
 
 // Вікно речі з профілю: іконка, назва, кнопка «Продати»
 let itemOpen = null;
@@ -798,8 +822,8 @@ function render() {
     e.b.disabled = !have && s.score < it.price;
     if (!have && s.score >= it.price) shopAfford++;
     const cell = cellEls[it.id];
-    cell.c.classList.toggle('locked', !have);
-    cell.c.classList.toggle('own', have);
+    cell.c.classList.toggle('mine', have);
+    cell.c.style.display = have ? '' : 'none';
     if (cell.have !== have) { cell.have = have; setIcon(cell.e, it, have); }
     cell.n.textContent = have ? it.name : '???';
   });
@@ -807,6 +831,8 @@ function render() {
   renderShop();
 
   const n = SHOP.filter(it => s.owned.includes(it.id)).length;
+  const hv = {}; SHOP.forEach(it => { if (isOwned(it.id)) hv[it.cat] = true; });
+  fillEmpty($('grid'), hv);
   renderTitle($('ptitle'), s.tag, s.stitle, 'Без тегу');
   $('ptitle').appendChild(document.createTextNode(' ›'));
   $('avatar').textContent = s.avatar || DEFAULT_AVATAR;
@@ -819,7 +845,7 @@ function render() {
   $('st-click').textContent = fmtR(perClick());
   $('st-sec').textContent = fmtR(perSec());
   $('st-time').textContent = fmtTime(s.time);
-  $('coll-h').textContent = `Колекція: ${n}/${SHOP.length}` + (n ? ' · торкніться, щоб продати' : '');
+  $('coll-h').innerHTML = `🏷️ Має у власності: ${n}/${SHOP.length}` + (n ? '<small style="display:block;font-weight:400;opacity:.7;margin-top:2px">Торкніться речі, щоб продати</small>' : '');
   $('coll-h').style.display = $('grid').style.display = SHOP.length ? '' : 'none';
 }
 
@@ -963,20 +989,25 @@ function showPlayer(v, rank) {
   const grid = $('pl-grid');
   grid.innerHTML = '';
   if (!hasList) {
-    $('pl-coll').textContent = "Колекція з'явиться, коли гравець оновить гру";
+    $('pl-coll').textContent = "Майно з'явиться, коли гравець оновить гру";
     grid.style.display = 'none';
   } else {
-    $('pl-coll').textContent = `Колекція: ${count}/${SHOP.length}`;
+    $('pl-coll').textContent = `🏷️ Має у власності: ${count}/${SHOP.length}`;
     grid.style.display = noShop ? 'none' : '';
+    const hv = {};
+    colFor(grid, CATS[0].id);
     SHOP.forEach(it => {
       const have = owned.includes(it.id);
+      if (!have) return;
+      hv[it.cat] = true;
       const c = document.createElement('div');
       c.className = 'cell' + (have ? '' : ' locked');
       const e = document.createElement('div'); e.className = 'e'; setIcon(e, it, have);
       const n = document.createElement('small'); n.textContent = have ? it.name : '???';
       c.append(e, n);
-      grid.appendChild(c);
+      colFor(grid, it.cat).appendChild(c);
     });
+    fillEmpty(grid, hv);
   }
   $('ov-player').classList.add('open');
 }
