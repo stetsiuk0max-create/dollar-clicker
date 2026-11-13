@@ -38,8 +38,8 @@
   @keyframes up { to { transform: translateY(-90px); opacity: 0; } }
 
   /* Нижня панель */
-  .bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: env(safe-area-inset-bottom); }
-  .bar button { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 2px; border: none; border-radius: 14px; font-size: 11px; font-weight: 800; }
+  .bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: env(safe-area-inset-bottom); }
+  .bar button { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 9px 0; border: none; border-radius: 14px; font-size: 10px; font-weight: 800; }
   .bi { font-size: 22px; line-height: 1.2; }
   .topbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; min-height: 36px; }
   #update { display: none; border: none; border-radius: 20px; padding: 8px 16px; background: #ff9800; color: #2b1800; font-size: 14px; font-weight: 800; animation: pulse 1.6s infinite; }
@@ -50,6 +50,16 @@
   #open-up   { background: #81d4fa; color: #01314a; }
   #open-shop { background: #ffd54f; color: #3e2f00; }
   #open-prof { background: #ce93d8; color: #2d0a35; }
+  #open-biz  { background: #80cbc4; color: #00302c; }
+  .bizcard { background: #1f4a30; border-radius: 16px; padding: 18px 14px; text-align: center; margin-bottom: 12px; }
+  .bizico { font-size: 56px; line-height: 1.1; }
+  #biz-title { font-weight: 800; font-size: 20px; margin-top: 4px; }
+  #biz-info { margin-top: 8px; line-height: 1.45; }
+  .sellbtn:disabled { opacity: .45; }
+  .sellbtn.capbtn { background: #80cbc4; color: #00302c; }
+  .sellbtn.collect { background: #81c784; color: #0d3b17; }
+  .poolbar { height: 14px; border-radius: 7px; background: #0f2417; overflow: hidden; }
+  .poolbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #66bb6a, #ffd54f); transition: width .3s; }
   .dot { display: none; position: absolute; top: -6px; right: -6px; min-width: 22px; height: 22px; border-radius: 11px; background: #e53935; color: #fff; font-size: 12px; line-height: 22px; padding: 0 6px; }
 
   /* Вікна */
@@ -226,6 +236,7 @@
   <div class="bar">
     <button id="open-up"   data-open="ov-up"><span class="bi">⚡</span>Покращення<span class="dot" id="dot-up"></span></button>
     <button id="open-shop" data-open="ov-shop"><span class="bi">🛒</span>Магазин<span class="dot" id="dot-shop"></span></button>
+    <button id="open-biz"  data-open="ov-biz"><span class="bi">💼</span>Бізнес<span class="dot" id="dot-biz"></span></button>
     <button id="open-prof" data-open="ov-prof"><span class="bi">👤</span>Профіль</button>
     <button id="open-game" data-open="ov-game"><span class="bi">🎲</span>Гра</button>
   </div>
@@ -237,6 +248,21 @@
     <div class="sheet-head"><h2>⚡ Покращення</h2><button class="close">✕</button></div>
     <div class="balance"></div>
     <div class="list" id="list-up"></div>
+  </div>
+</div>
+
+<!-- Бізнес -->
+<div class="overlay" id="ov-biz">
+  <div class="sheet">
+    <div class="sheet-head"><h2>💼 Бізнес</h2><button class="close">✕</button></div>
+    <div class="balance"></div>
+    <div class="scroll" style="padding: 0 14px 20px">
+      <div class="bizcard"><div class="bizico">💼</div><div id="biz-title"></div><div id="biz-info" class="hint"></div></div>
+      <div id="biz-pool" style="display:none; margin-bottom: 12px"><div class="poolbar"><i id="pool-fill"></i></div><div id="pool-txt" class="hint" style="text-align:center; padding: 6px 0 10px"></div><button id="biz-collect" class="sellbtn collect"></button></div>
+      <button id="biz-btn" class="sellbtn"></button>
+      <button id="cap-btn" class="sellbtn capbtn" style="margin-top: 10px; display: none"></button>
+      <div id="biz-note" class="hint" style="padding: 12px 4px 0; text-align: center"></div>
+    </div>
   </div>
 </div>
 
@@ -270,7 +296,7 @@
         <div class="stat"><small>Баланс</small><b id="st-bal"></b></div>
         <div class="stat"><small>Усього зароблено</small><b id="st-total"></b></div>
         <div class="stat"><small>За клік</small><b id="st-click"></b></div>
-        <div class="stat"><small>За секунду</small><b id="st-sec"></b></div>
+        <div class="stat"><small>За хвилину</small><b id="st-min"></b></div>
         <div class="stat"><small>⏱️ Час у грі</small><b id="st-time"></b></div>
         <div class="stat"><small>👆 Кліків зроблено</small><b id="st-clicks"></b></div>
       </div>
@@ -384,9 +410,9 @@
         <div class="stat"><small>Усього зароблено</small><b id="pl-total"></b></div>
         <div class="stat"><small>Баланс зараз</small><b id="pl-bal"></b></div>
         <div class="stat"><small>За клік</small><b id="pl-click"></b></div>
-        <div class="stat"><small>За секунду</small><b id="pl-sec"></b></div>
+        <div class="stat"><small>За хвилину</small><b id="pl-sec"></b></div>
         <div class="stat"><small>Речей куплено</small><b id="pl-items"></b></div>
-        <div class="stat"><small>Автоклікерів</small><b id="pl-auto"></b></div>
+        <div class="stat"><small>💼 Бізнес</small><b id="pl-auto"></b></div>
         <div class="stat" style="grid-column: 1 / -1"><small>⏱️ Час у грі</small><b id="pl-time"></b></div>
       </div>
       <div class="coll-h" id="pl-coll"></div>
@@ -414,7 +440,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 48;
+const APP_VERSION = 51;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -432,14 +458,21 @@ function cleanEmoji(str) {
   return '';
 }
 const KEY = 'clicker_save_v2';
-const DEFAULT = { score: 1, total: 0, mult: 0, auto: 0 };
-let s = { ...DEFAULT, owned: [], avatar: '', g: { p: 0, w: 0, b: 0 }, pend: null, time: 0, clicks: 0, tag: '', stitle: '', redeemed: [], special: [], promoBonus: 0 };
+const DEFAULT = { score: 1, total: 0, mult: 0 };
+let s = { ...DEFAULT, biz: 0, bizLvl: 0, bizCap: 0, pool: 0, last: Date.now(), owned: [], avatar: '', g: { p: 0, w: 0, b: 0 }, pend: null, time: 0, clicks: 0, tag: '', stitle: '', redeemed: [], special: [], promoBonus: 0 };
 try {
   const saved = JSON.parse(localStorage.getItem(KEY)) || {};
   s.score = saved.score ?? DEFAULT.score;
   s.total = saved.total || 0;
   s.mult = saved.mult || 0;
-  s.auto = saved.auto || 0;
+  s.biz = saved.biz ? 1 : 0;
+  s.bizLvl = Math.max(0, Math.floor(saved.bizLvl) || 0);
+  s.last = Number.isFinite(saved.last) ? saved.last : Date.now();
+  s.pool = (Number.isFinite(saved.pool) && saved.pool > 0) ? saved.pool : 0;
+  s.bizCap = Math.max(0, Math.floor(saved.bizCap) || 0);
+  // Автоклікер прибрано: повертаємо гроші за куплені (один раз)
+  const oldAuto = Math.floor(saved.auto) || 0;
+  if (oldAuto > 0) { let t = 0; for (let i = 0; i < oldAuto; i++) t += Math.floor(50 * Math.pow(1.55, i)); s.score += t; }
   s.owned = Array.isArray(saved.owned) ? saved.owned : [];
   s.name = typeof saved.name === 'string' ? saved.name : '';
   s.uid = typeof saved.uid === 'string' ? saved.uid : '';
@@ -486,11 +519,6 @@ const UPGRADES = [
     own: () => s.mult,
     cost: () => Math.floor(25 * Math.pow(1.6, s.mult)),
     buy: () => s.mult++ },
-  { id: 'auto', ico: '🤖', name: 'Автоклікер',
-    desc: () => '+$1 за секунду',
-    own: () => s.auto,
-    cost: () => Math.floor(50 * Math.pow(1.55, s.auto)),
-    buy: () => s.auto++ },
 ];
 
 /* ---------- Магазин ---------- */
@@ -539,7 +567,15 @@ const COMING_SOON = [
 // Бонус від речей з магазину: кожна річ додає до множника всього доходу
 const shopBonus = () => 1 + s.promoBonus;   // речі з магазину доходу не дають, тільки промокоди
 const perClick = () => (1 + s.mult) * shopBonus();
-const perSec   = () => s.auto * shopBonus();
+// Бізнес: 100к, дає $10 за ХВИЛИНУ і працює, навіть коли гравець не в мережі.
+// Гроші накопичуються на складі бізнесу (ліміт 50к). Склад збільшується окремою кнопкою: +100к, ціна 100к, 200к, 300к...
+// Покращення бізнесу: +$10/хв, ціна 50к, 150к, 250к...
+const BIZ_PRICE = 100000, BIZ_STEP = 10;
+const bizPerMin = () => s.biz ? BIZ_STEP * (1 + s.bizLvl) * shopBonus() : 0;
+const bizUpCost = () => 50000 + 100000 * s.bizLvl;
+const bizLimit = () => 50000 + 100000 * s.bizCap;      // склад: окрема покупка
+const capCost = () => 100000 * (1 + s.bizCap);          // 100к, 200к, 300к...
+const perSec   = () => bizPerMin() / 60;
 const isOwned  = id => s.owned.includes(id);
 // Тимчасово прибрані речі: якщо хтось встиг купити, повертаємо повну ціну (один раз). Щоб повернути річ у гру, перенесіть її рядок у SHOP.
 const WITHDRAWN = [{ id: 'car2', price: 25000 }];   // Lada 2109 (картинка car2.webp збережена окремо)
@@ -797,11 +833,50 @@ function onClickCount() {
     vibrate([30, 40, 60]);
   });
 }
+function renderBiz() {
+  const own = !!s.biz, price = own ? bizUpCost() : BIZ_PRICE;
+  $('biz-title').textContent = own ? `Ваш бізнес · рівень ${1 + s.bizLvl}` : 'Власний бізнес';
+  $('biz-info').innerHTML = own
+    ? `Дохід: <b>+$${fmtR(bizPerMin()).replace('$','')} за хвилину</b> (≈ ${fmt(bizPerMin() * 60)} за годину)<br>Працює, навіть коли вас немає в мережі 🌙`
+    : `Приносить <b>$${BIZ_STEP} за хвилину</b> і працює, навіть коли ви не в мережі 🌙<br>Гроші збираються на складі бізнесу (ліміт $50,000). Покращення збільшують дохід, а склад збільшується окремою кнопкою.`;
+  $('biz-pool').style.display = own ? '' : 'none';
+  if (own) {
+    const lim = bizLimit(), full = s.pool >= lim;
+    $('pool-fill').style.width = Math.min(100, s.pool / lim * 100) + '%';
+    $('pool-txt').textContent = `Склад: ${fmt(s.pool)} / ${fmt(lim)}` + (full ? ' · повний!' : '');
+    $('biz-collect').textContent = `💰 Забрати ${fmt(s.pool)}`;
+    $('biz-collect').disabled = s.pool < 1;
+  }
+  $('cap-btn').style.display = own ? '' : 'none';
+  if (own) { $('cap-btn').textContent = `📦 Збільшити склад (+$100K) · ${fmt(capCost())}`; $('cap-btn').disabled = s.score < capCost(); }
+  $('biz-btn').textContent = own ? `⬆️ Покращити бізнес (+$${BIZ_STEP}/хв) · ${fmt(price)}` : `💼 Купити бізнес · ${fmt(price)}`;
+  $('biz-btn').disabled = s.score < price;
+  $('biz-note').textContent = own ? `Кожна наступна покупка дорожча на $100,000` : '';
+  showDot($('dot-biz'), (s.score >= price || (own && (s.score >= capCost() || s.pool >= bizLimit()))) ? 1 : 0);
+}
+$('cap-btn').onclick = () => {
+  const c = capCost();
+  if (!s.biz || s.score < c) return;
+  s.score -= c; s.bizCap++;
+  vibrate(25); render(); save();
+};
+$('biz-collect').onclick = () => {
+  if (s.pool < 1) return;
+  const g = s.pool; s.pool = 0; s.score += g; s.total += g;
+  vibrate(25); showToast(`💰 Забрано ${fmt(g)}`); render(); save();
+};
+$('biz-btn').onclick = () => {
+  const price = s.biz ? bizUpCost() : BIZ_PRICE;
+  if (s.score < price) return;
+  s.score -= price;
+  if (s.biz) s.bizLvl++; else s.biz = 1;
+  vibrate(25); render(); save();
+};
 const showDot = (el, n) => { el.style.display = n ? 'block' : 'none'; el.textContent = n; };
 
 function render() {
   $('score').textContent = fmt(s.score);
-  $('cps').textContent = `+${fmtR(perClick())} за клік` + (perSec() ? ` · +${fmtR(perSec())} за сек` : '');
+  $('cps').textContent = `+${fmtR(perClick())} за клік` + (s.biz ? ` · бізнес +${fmtR(bizPerMin())}/хв` : '');
   document.querySelectorAll('.balance').forEach(el => el.textContent = 'Ваш баланс: ' + fmt(s.score));
 
   let upAfford = 0;
@@ -829,6 +904,7 @@ function render() {
     cell.n.textContent = have ? it.name : '???';
   });
   showDot($('dot-shop'), shopAfford);
+  renderBiz();
   renderShop();
 
   const n = SHOP.filter(it => s.owned.includes(it.id)).length;
@@ -844,7 +920,7 @@ function render() {
   $('st-total').textContent = fmt(s.total);
   $('shop-cap').textContent = SHOP.length ? '🛒 Оберіть розділ і купуйте майно для профілю. Скоро буде більше!' : '🚧 Магазин оновлюється! Скоро тут з’являться будинки, машини та багато іншого.';
   $('st-click').textContent = fmtR(perClick());
-  $('st-sec').textContent = fmtR(perSec());
+  $('st-min').textContent = fmtR(bizPerMin());
   $('st-time').textContent = fmtTime(s.time);
   $('coll-h').innerHTML = `🏷️ Має у власності: ${n}/${SHOP.length}` + (n ? '<small style="display:block;font-weight:400;opacity:.7;margin-top:2px">Торкніться речі, щоб продати</small>' : '');
   $('coll-h').style.display = $('grid').style.display = SHOP.length ? '' : 'none';
@@ -876,14 +952,14 @@ $('bill').addEventListener('pointerdown', e => {
 const LB_URL = 'https://cliker-b17da-default-rtdb.firebaseio.com';
 
 let lbSent = '';
-const lbSig = () => Math.floor(s.total) + '|' + Math.floor(s.score) + '|' + s.owned.length + '|' + s.mult + '|' + s.auto + '|' + s.avatar + '|' + Math.floor(s.time / 60) + '|' + s.tag + '|' + s.stitle;
+const lbSig = () => Math.floor(s.total) + '|' + Math.floor(s.score) + '|' + s.owned.length + '|' + s.mult + '|' + s.biz + s.bizLvl + '|' + s.avatar + '|' + Math.floor(s.time / 60) + '|' + s.tag + '|' + s.stitle;
 async function lbSubmit() {
   if (!LB_URL || !s.name) return;
   const total = Math.floor(s.total), sig = lbSig();
   const r = await fetch(`${LB_URL}/scores/${s.uid}.json`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: s.name, total, bal: Math.floor(s.score), items: s.owned.length, owned: s.owned, click: Math.round(perClick() * 10) / 10, sec: Math.round(perSec() * 10) / 10, auto: s.auto, av: s.avatar || '', pt: Math.floor(s.time), tag: s.tag, stag: s.stitle, t: Date.now() })
+    body: JSON.stringify({ name: s.name, total, bal: Math.floor(s.score), items: s.owned.length, owned: s.owned, click: Math.round(perClick() * 10) / 10, sec: Math.round(perSec() * 10) / 10, biz: s.biz ? 1 + s.bizLvl : 0, av: s.avatar || '', pt: Math.floor(s.time), tag: s.tag, stag: s.stitle, t: Date.now() })
   });
   if (r.ok) lbSent = sig;
 }
@@ -979,14 +1055,14 @@ function showPlayer(v, rank) {
   $('pl-total').textContent = fmt(num(v.total));
   $('pl-bal').textContent = v.bal === undefined ? '—' : fmt(num(v.bal));
   $('pl-click').textContent = fmtR(v.click === undefined ? 1 : num(v.click));
-  $('pl-sec').textContent = fmtR(num(v.sec));
+  $('pl-sec').textContent = fmtR(num(v.sec) * 60);
   $('pl-time').textContent = v.pt === undefined ? '—' : fmtTime(num(v.pt));
   $('pl-items').textContent = count + '/' + SHOP.length;
   const noShop = !SHOP.length;
   $('pl-items').parentElement.style.display = noShop ? 'none' : '';
   $('pl-auto').parentElement.style.gridColumn = noShop ? '1 / -1' : '';
   $('pl-coll').style.display = noShop ? 'none' : '';
-  $('pl-auto').textContent = v.auto === undefined ? '—' : String(Math.floor(num(v.auto)));
+  $('pl-auto').textContent = v.biz === undefined ? '—' : (num(v.biz) > 0 ? 'Рівень ' + Math.floor(num(v.biz)) : 'Немає');
   const grid = $('pl-grid');
   grid.innerHTML = '';
   if (!hasList) {
@@ -1206,6 +1282,18 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 51, date: '13 листопада', title: 'Склад бізнесу 📦', items: [
+    '📦 Склад бізнесу тепер збільшується окремою кнопкою: +$100,000 до ліміту',
+    '💰 Перше збільшення коштує $100,000, кожне наступне на $100,000 дорожче',
+    '⬆️ Покращення бізнесу тепер дає тільки +$10 за хвилину',
+  ]},
+  { v: 49, date: '13 листопада', title: 'Бізнес 💼', items: [
+    '💼 Нова кнопка «Бізнес»: купуєте за $100,000 і отримуєте $10 за хвилину',
+    '🌙 Бізнес працює, навіть коли ви не в мережі: гроші збираються на складі',
+    '📦 Склад вміщує $50,000. Коли треба, заберіть гроші кнопкою «Забрати»',
+    '⬆️ Покращення: +$10/хв і склад +$100,000. Перше коштує $50,000, кожне наступне на $100,000 дорожче',
+    '🤖 Автоклікер прибрано, гроші за куплені повернуто',
+  ]},
   { v: 48, date: '13 листопада', title: 'Новий будинок! 🏠', items: [
     '🏠 Дім 2: $50,000 (розділ «Хати»)',
   ]},
@@ -1345,7 +1433,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) chec
 /* ---------- Код збереження ---------- */
 function makeCode() {
   creditPending();
-  const o = { v: 1, score: s.score, total: s.total, mult: s.mult, auto: s.auto, owned: s.owned, name: s.name, uid: s.uid, avatar: s.avatar, g: s.g, time: Math.floor(s.time), clicks: s.clicks, tag: s.tag, stitle: s.stitle, redeemed: s.redeemed, special: s.special, promoBonus: s.promoBonus };
+  const o = { v: 1, score: s.score, total: s.total, mult: s.mult, biz: s.biz, bizLvl: s.bizLvl, bizCap: s.bizCap, pool: s.pool, owned: s.owned, name: s.name, uid: s.uid, avatar: s.avatar, g: s.g, time: Math.floor(s.time), clicks: s.clicks, tag: s.tag, stitle: s.stitle, redeemed: s.redeemed, special: s.special, promoBonus: s.promoBonus };
   return 'DC1-' + btoa(unescape(encodeURIComponent(JSON.stringify(o))));
 }
 function applyCode(str) {
@@ -1356,7 +1444,12 @@ function applyCode(str) {
   s.score = num(o.score);
   s.total = num(o.total);
   s.mult = Math.floor(num(o.mult));
-  s.auto = Math.floor(num(o.auto));
+  s.biz = o.biz ? 1 : 0;
+  s.bizLvl = Math.floor(num(o.bizLvl));
+  s.bizCap = Math.floor(num(o.bizCap));
+  s.pool = Math.min(num(o.pool), bizLimit());
+  s.last = Date.now();
+  { const oa = Math.floor(num(o.auto)); for (let i = 0; i < oa; i++) s.score += Math.floor(50 * Math.pow(1.55, i)); }   // старий автоклікер: повертаємо гроші
   s.owned = Array.isArray(o.owned) ? o.owned.filter(id => typeof id === 'string') : [];
   s.name = typeof o.name === 'string' ? o.name.slice(0, 16) : '';
   s.avatar = cleanEmoji(o.avatar);
@@ -1412,10 +1505,22 @@ document.querySelectorAll('.overlay').forEach(o => {
   });
 });
 
-setInterval(() => {
-  const g = perSec() / 10;
-  if (g > 0) { s.score += g; s.total += g; render(); }
-}, 100);
+// Дохід рахуємо за реальним часом: так бізнес працює й у фоні, і коли гру закрито
+function earn() {
+  const now = Date.now();
+  let dt = (now - s.last) / 1000;
+  if (!Number.isFinite(dt) || dt < 0) dt = 0;
+  s.last = now;
+  const before = s.pool;
+  if (s.biz && s.pool < bizLimit()) s.pool = Math.min(bizLimit(), s.pool + perSec() * dt);
+  return { g: s.pool - before, dt, full: s.biz && s.pool >= bizLimit() };
+}
+function awayCheck() {
+  const r = earn();
+  if (r.dt > 60 && (r.g >= 1 || r.full)) { render(); showToast(r.full ? `💼 Склад бізнесу повний (${fmt(s.pool)}), заберіть гроші!` : `💼 Бізнес накопичив ${fmt(r.g)}, поки вас не було`); save(); }
+}
+setInterval(() => { if (earn().g > 0) render(); }, 100);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) awayCheck(); });
 // Час у грі: рахуємо тільки поки сторінка відкрита й видима
 let lastTick = Date.now();
 setInterval(() => {
@@ -1438,6 +1543,7 @@ setInterval(save, 3000);
 document.addEventListener('visibilitychange', save);
 
 render();
+awayCheck();
 </script>
 </body>
 </html>
