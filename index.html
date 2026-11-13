@@ -440,7 +440,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 51;
+const APP_VERSION = 52;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -568,13 +568,12 @@ const COMING_SOON = [
 const shopBonus = () => 1 + s.promoBonus;   // речі з магазину доходу не дають, тільки промокоди
 const perClick = () => (1 + s.mult) * shopBonus();
 // Бізнес: 100к, дає $10 за ХВИЛИНУ і працює, навіть коли гравець не в мережі.
-// Гроші накопичуються на складі бізнесу (ліміт 50к). Склад збільшується окремою кнопкою: +100к, ціна 100к, 200к, 300к...
-// Покращення бізнесу: +$10/хв, ціна 50к, 150к, 250к...
-const BIZ_PRICE = 100000, BIZ_STEP = 10;
+// Ціни (після здешевлення): бізнес 60к; покращення 30к, 90к, 150к...; склад (+100к до ліміту) 60к, 120к, 180к...
+const BIZ_PRICE = 60000, BIZ_STEP = 10, PRICE_STEP = 60000;
 const bizPerMin = () => s.biz ? BIZ_STEP * (1 + s.bizLvl) * shopBonus() : 0;
-const bizUpCost = () => 50000 + 100000 * s.bizLvl;
+const bizUpCost = () => 30000 + PRICE_STEP * s.bizLvl;       // 30к, 90к, 150к...
 const bizLimit = () => 50000 + 100000 * s.bizCap;      // склад: окрема покупка
-const capCost = () => 100000 * (1 + s.bizCap);          // 100к, 200к, 300к...
+const capCost = () => PRICE_STEP * (1 + s.bizCap);           // 60к, 120к, 180к...
 const perSec   = () => bizPerMin() / 60;
 const isOwned  = id => s.owned.includes(id);
 // Тимчасово прибрані речі: якщо хтось встиг купити, повертаємо повну ціну (один раз). Щоб повернути річ у гру, перенесіть її рядок у SHOP.
@@ -851,7 +850,7 @@ function renderBiz() {
   if (own) { $('cap-btn').textContent = `📦 Збільшити склад (+$100K) · ${fmt(capCost())}`; $('cap-btn').disabled = s.score < capCost(); }
   $('biz-btn').textContent = own ? `⬆️ Покращити бізнес (+$${BIZ_STEP}/хв) · ${fmt(price)}` : `💼 Купити бізнес · ${fmt(price)}`;
   $('biz-btn').disabled = s.score < price;
-  $('biz-note').textContent = own ? `Кожна наступна покупка дорожча на $100,000` : '';
+  $('biz-note').textContent = own ? `Кожна наступна покупка дорожча на ${fmt(PRICE_STEP)}` : '';
   showDot($('dot-biz'), (s.score >= price || (own && (s.score >= capCost() || s.pool >= bizLimit()))) ? 1 : 0);
 }
 $('cap-btn').onclick = () => {
@@ -1282,6 +1281,11 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 52, date: '13 листопада', title: 'Бізнес став дешевшим 💸', items: [
+    '💼 Бізнес: $60,000 (було $100,000)',
+    '⬆️ Покращення: $30,000, далі на $60,000 дорожче',
+    '📦 Збільшення складу: $60,000, далі на $60,000 дорожче',
+  ]},
   { v: 51, date: '13 листопада', title: 'Склад бізнесу 📦', items: [
     '📦 Склад бізнесу тепер збільшується окремою кнопкою: +$100,000 до ліміту',
     '💰 Перше збільшення коштує $100,000, кожне наступне на $100,000 дорожче',
