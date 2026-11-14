@@ -125,6 +125,9 @@
   .cell.mine { cursor: pointer; }
   .cell.mine:active { background: #2a6340; }
   .item .stk { color: #ffd54f; font-weight: 700; }
+  .item.market { background: linear-gradient(135deg, #ffd54f, #ffb300); color: #3e2f00; margin-bottom: 6px; box-shadow: 0 4px 14px rgba(255,179,0,.25); }
+  .item.market .info small { color: #5d4300; opacity: 1; }
+  .item.market .price { font-size: 13px; color: #3e2f00; background: rgba(255,255,255,.55); padding: 4px 10px; border-radius: 10px; }
   .item.back { background: transparent; border: 1px solid #2d5a3d; justify-content: center; font-weight: 700; }
   .item.soon { opacity: .75; cursor: default; }
   .item.soon .price { color: #81d4fa; }
@@ -444,7 +447,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 61;
+const APP_VERSION = 63;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -742,8 +745,20 @@ CATS.slice().reverse().forEach(c => {   // reverse: кожна кнопка вс
   $('list-shop').insertBefore(b, backBtn.nextSibling);
   catEls[c.id] = b;
 });
+// Ринок: поки заглушка (гравці зможуть продавати речі одне одному пізніше)
+const marketBtn = document.createElement('button');
+marketBtn.className = 'item cat market';
+marketBtn.innerHTML = `<span class="ico">🏪</span><span class="info"><b>Ринок</b><small>Продаж речей між гравцями</small></span><span class="price">Скоро</span>`;
+marketBtn.onclick = () => { shopCat = 'market'; renderShop(); };
+$('list-shop').insertBefore(marketBtn, $('list-shop').firstChild);   // зверху, як головна кнопка
+const marketInfo = document.createElement('div');
+marketInfo.className = 'item soon market-info';
+marketInfo.innerHTML = `<span class="ico">🏪</span><span class="info"><b>Ринок скоро відкриється</b><small>Тут гравці зможуть виставляти свої речі на продаж і купувати їх один в одного. Слідкуйте за новинами!</small></span>`;
+$('list-shop').appendChild(marketInfo);
 function renderShop() {
   const menu = shopCat === null;
+  marketBtn.style.display = menu ? '' : 'none';
+  marketInfo.style.display = shopCat === 'market' ? '' : 'none';
   backBtn.style.display = menu ? 'none' : '';
   CATS.forEach(c => {
     const have = SHOP.filter(i => i.cat === c.id && isOwned(i.id)).length, all = SHOP.filter(i => i.cat === c.id).length;
@@ -751,7 +766,7 @@ function renderShop() {
     catEls[c.id].querySelector('small').textContent = `Куплено: ${have}/${all}`;
   });
   SHOP.forEach(it => { shopEls[it.id].b.style.display = (!menu && it.cat === shopCat) ? '' : 'none'; });
-  document.querySelectorAll('#list-shop .soon').forEach(d => { d.style.display = (!menu && d.dataset.cat === shopCat) ? '' : 'none'; });
+  document.querySelectorAll('#list-shop .soon:not(.market-info)').forEach(d => { d.style.display = (!menu && d.dataset.cat === shopCat) ? '' : 'none'; });
 }
 COMING_SOON.forEach(it => {
   const d = document.createElement('div');
@@ -1378,6 +1393,10 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 62, date: '14 листопада', title: 'Скоро: Ринок 🏪', items: [
+    '🏪 У магазині з’явилася кнопка «Ринок»',
+    '👥 Скоро гравці зможуть продавати свої речі одне одному',
+  ]},
   { v: 56, date: '14 листопада', title: 'ID акаунта', items: [
     'У кожного гравця тепер є свій ID, наприклад #482913',
     '👤 Його видно в профілі та в профілях гравців у «Лідерах»',
