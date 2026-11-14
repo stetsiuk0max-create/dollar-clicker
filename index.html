@@ -299,7 +299,7 @@
         <div class="stat"><small>Баланс</small><b id="st-bal"></b></div>
         <div class="stat"><small>Усього зароблено</small><b id="st-total"></b></div>
         <div class="stat"><small>За клік</small><b id="st-click"></b></div>
-        <div class="stat"><small>За хвилину</small><b id="st-min"></b></div>
+        <div class="stat"><small>💼 Бізнес</small><b id="st-min"></b></div>
         <div class="stat"><small>⏱️ Час у грі</small><b id="st-time"></b></div>
         <div class="stat"><small>👆 Кліків зроблено</small><b id="st-clicks"></b></div>
       </div>
@@ -414,7 +414,7 @@
         <div class="stat"><small>Усього зароблено</small><b id="pl-total"></b></div>
         <div class="stat"><small>Баланс зараз</small><b id="pl-bal"></b></div>
         <div class="stat"><small>За клік</small><b id="pl-click"></b></div>
-        <div class="stat"><small>За хвилину</small><b id="pl-sec"></b></div>
+        <div class="stat"><small>👆 Кліків зроблено</small><b id="pl-sec"></b></div>
         <div class="stat"><small>Речей куплено</small><b id="pl-items"></b></div>
         <div class="stat"><small>💼 Бізнес</small><b id="pl-auto"></b></div>
         <div class="stat" style="grid-column: 1 / -1"><small>⏱️ Час у грі</small><b id="pl-time"></b></div>
@@ -444,7 +444,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 58;
+const APP_VERSION = 59;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -986,7 +986,7 @@ function render() {
   $('st-total').textContent = fmt(s.total);
   $('shop-cap').textContent = SHOP.length ? '🛒 Оберіть розділ і купуйте майно для профілю. Скоро буде більше!' : '🚧 Магазин оновлюється! Скоро тут з’являться будинки, машини та багато іншого.';
   $('st-click').textContent = fmtR(perClick());
-  $('st-min').textContent = fmtR(bizPerMin());
+  $('st-min').textContent = s.biz ? '+' + fmtR(bizPerMin()) + '/хв' : 'Немає';
   $('st-time').textContent = fmtTime(s.time);
   $('coll-h').innerHTML = `🏷️ Має у власності: ${n}/${SHOP.length}` + (n ? '<small style="display:block;font-weight:400;opacity:.7;margin-top:2px">Торкніться речі, щоб продати</small>' : '');
   $('coll-h').style.display = $('grid').style.display = SHOP.length ? '' : 'none';
@@ -1025,7 +1025,7 @@ async function lbSubmit() {
   const r = await fetch(`${LB_URL}/scores/${s.uid}.json`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: s.name, total, bal: Math.floor(s.score), items: s.owned.length, owned: s.owned, click: Math.round(perClick() * 10) / 10, sec: Math.round(perSec() * 10) / 10, biz: s.biz ? 1 + s.bizLvl : 0, bizm: Math.round(bizPerMin() * 10) / 10, av: s.avatar || '', pt: Math.floor(s.time), tag: s.tag, stag: s.stitle, t: Date.now() })
+    body: JSON.stringify({ name: s.name, total, bal: Math.floor(s.score), items: s.owned.length, owned: s.owned, click: Math.round(perClick() * 10) / 10, sec: Math.round(perSec() * 10) / 10, biz: s.biz ? 1 + s.bizLvl : 0, bizm: Math.round(bizPerMin() * 10) / 10, av: s.avatar || '', pt: Math.floor(s.time), cl: s.clicks, tag: s.tag, stag: s.stitle, t: Date.now() })
   });
   if (r.ok) lbSent = sig;
 }
@@ -1122,7 +1122,7 @@ function showPlayer(v, rank) {
   $('pl-total').textContent = fmt(num(v.total));
   $('pl-bal').textContent = v.bal === undefined ? '—' : fmt(num(v.bal));
   $('pl-click').textContent = fmtR(v.click === undefined ? 1 : num(v.click));
-  $('pl-sec').textContent = fmtR(num(v.sec) * 60);
+  $('pl-sec').textContent = v.cl === undefined ? '—' : Math.floor(num(v.cl)).toLocaleString('en-US');
   $('pl-time').textContent = v.pt === undefined ? '—' : fmtTime(num(v.pt));
   $('pl-items').textContent = count + '/' + SHOP.length;
   const noShop = !SHOP.length;
@@ -1333,9 +1333,12 @@ function copyText(t) {
 }));
 
 // ID акаунта прив'язаний до нікнейму: інший нік, інший ID. 6 цифр, однакові для всіх пристроїв.
+// Особливі ID, видані вручну (за нікнеймом)
+const SPECIAL_IDS = { 'яна лапочка лох': '#777888' };
 function accountId(name) {
   const t = String(name || '').trim().toLowerCase();
   if (!t) return '';
+  if (SPECIAL_IDS[t]) return SPECIAL_IDS[t];
   return '#' + (100000 + cyrb53('dc-id-v1|' + t) % 900000);
 }
 // Схожі літери (латиниця ↔ кирилиця), щоб код спрацював і при змішаній розкладці
