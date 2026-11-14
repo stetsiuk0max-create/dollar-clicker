@@ -203,6 +203,7 @@
   .prof-head { text-align: center; padding: 4px 18px 12px; }
   .avatar { font-size: 60px; line-height: 1.1; }
   .pname { font-weight: 800; font-size: 20px; }
+  .acc { font-size: 13px; font-weight: 700; color: #b9f6ca; opacity: .85; margin-top: 2px; letter-spacing: .5px; user-select: text; -webkit-user-select: text; }
   .ptitle { color: #ffd54f; font-size: 14px; margin-top: 2px; }
   .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 14px 12px; }
   .stat { background: #1f4a30; border-radius: 12px; padding: 10px 12px; }
@@ -291,6 +292,7 @@
           <div class="hint" id="av-msg">Відкрийте смайлики на клавіатурі й оберіть будь-який</div>
         </div>
         <div class="pname" id="pname">Гравець</div>
+        <div class="acc" id="pacc"></div>
         <div class="ptitle" id="ptitle"></div>
       </div>
       <div class="stats">
@@ -404,6 +406,7 @@
       <div class="prof-head">
         <div class="avatar" id="pl-avatar">🙂</div>
         <div class="pname" id="pl-name"></div>
+        <div class="acc" id="pl-acc"></div>
         <div class="ptitle" id="pl-title"></div>
         <div class="hint" id="pl-rank"></div>
       </div>
@@ -441,7 +444,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 55;
+const APP_VERSION = 57;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -978,6 +981,7 @@ function render() {
   $('st-clicks').textContent = s.clicks.toLocaleString('en-US');
   updateAch();
   $('pname').textContent = s.name || 'Гравець';
+  $('pacc').textContent = s.name ? 'ID: ' + accountId(s.name) : 'ID з’явиться, коли ви оберете нікнейм';
   $('st-bal').textContent = fmt(s.score);
   $('st-total').textContent = fmt(s.total);
   $('shop-cap').textContent = SHOP.length ? '🛒 Оберіть розділ і купуйте майно для профілю. Скоро буде більше!' : '🚧 Магазин оновлюється! Скоро тут з’являться будинки, машини та багато іншого.';
@@ -1110,6 +1114,7 @@ function showPlayer(v, rank) {
   const owned = ownedList(v.owned);
   const count = playerCount(v);
   $('pl-name').textContent = String(v.name || '?').slice(0, 16);
+  $('pl-acc').textContent = v.name ? 'ID: ' + accountId(v.name) : '';
   const tg = renderTitle($('pl-title'), typeof v.tag === 'string' ? v.tag : '', typeof v.stag === 'string' ? v.stag : '', '');
   $('pl-title').style.display = tg ? '' : 'none';
   $('pl-avatar').textContent = avatarOf(v);
@@ -1181,7 +1186,9 @@ $('nick').value = s.name;
 $('nick-save').onclick = () => {
   const v = $('nick').value.trim().slice(0, 16);
   if (v.length < 2) { $('nick').focus(); return; }
+  const had = s.name !== v;
   s.name = v; save(); render(); lbRefresh();
+  if (had) showToast('Ваш ID: ' + accountId(v));
 };
 setInterval(() => {
   if (LB_URL && s.name && lbSig() !== lbSent) lbSubmit().catch(() => {});
@@ -1307,6 +1314,13 @@ const cyrb53 = (str, seed = 0) => {
   h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
   return 4294967296 * (2097151 & h2) + (h1 >>> 0);
 };
+
+// ID акаунта прив'язаний до нікнейму: інший нік, інший ID. 6 цифр, однакові для всіх пристроїв.
+function accountId(name) {
+  const t = String(name || '').trim().toLowerCase();
+  if (!t) return '';
+  return '#' + (100000 + cyrb53('dc-id-v1|' + t) % 900000);
+}
 // Схожі літери (латиниця ↔ кирилиця), щоб код спрацював і при змішаній розкладці
 const LAT = 'ABCEHKMOPTXI', CYR = 'АВСЕНКМОРТХІ';
 const swapLetters = (str, from, to) => str.replace(/./g, c => { const i = from.indexOf(c); return i < 0 ? c : to[i]; });
@@ -1344,6 +1358,11 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 56, date: '14 листопада', title: 'ID акаунта', items: [
+    'У кожного гравця тепер є свій ID, наприклад #482913',
+    '👤 Його видно в профілі та в профілях гравців у «Лідерах»',
+    '✏️ ID прив’язаний до нікнейму: змінили нік, змінився й ID',
+  ]},
   { v: 55, date: '14 листопада', title: 'Обмежені машини 🚗', items: [
     '🔒 Кожної машини в усій грі лише 20 штук: Жигуль, ВАЗ 2108',
     '👀 У магазині видно, скільки залишилося, наприклад 14/20',
