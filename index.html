@@ -440,7 +440,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 52;
+const APP_VERSION = 54;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -569,7 +569,7 @@ const shopBonus = () => 1 + s.promoBonus;   // речі з магазину до
 const perClick = () => (1 + s.mult) * shopBonus();
 // Бізнес: 100к, дає $10 за ХВИЛИНУ і працює, навіть коли гравець не в мережі.
 // Ціни (після здешевлення): бізнес 60к; покращення 30к, 90к, 150к...; склад (+100к до ліміту) 60к, 120к, 180к...
-const BIZ_PRICE = 60000, BIZ_STEP = 10, PRICE_STEP = 60000;
+const BIZ_PRICE = 60000, BIZ_STEP = 15, PRICE_STEP = 60000;
 const bizPerMin = () => s.biz ? BIZ_STEP * (1 + s.bizLvl) * shopBonus() : 0;
 const bizUpCost = () => 30000 + PRICE_STEP * s.bizLvl;       // 30к, 90к, 150к...
 const bizLimit = () => 50000 + 100000 * s.bizCap;      // склад: окрема покупка
@@ -958,7 +958,7 @@ async function lbSubmit() {
   const r = await fetch(`${LB_URL}/scores/${s.uid}.json`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: s.name, total, bal: Math.floor(s.score), items: s.owned.length, owned: s.owned, click: Math.round(perClick() * 10) / 10, sec: Math.round(perSec() * 10) / 10, biz: s.biz ? 1 + s.bizLvl : 0, av: s.avatar || '', pt: Math.floor(s.time), tag: s.tag, stag: s.stitle, t: Date.now() })
+    body: JSON.stringify({ name: s.name, total, bal: Math.floor(s.score), items: s.owned.length, owned: s.owned, click: Math.round(perClick() * 10) / 10, sec: Math.round(perSec() * 10) / 10, biz: s.biz ? 1 + s.bizLvl : 0, bizm: Math.round(bizPerMin() * 10) / 10, av: s.avatar || '', pt: Math.floor(s.time), tag: s.tag, stag: s.stitle, t: Date.now() })
   });
   if (r.ok) lbSent = sig;
 }
@@ -1061,7 +1061,7 @@ function showPlayer(v, rank) {
   $('pl-items').parentElement.style.display = noShop ? 'none' : '';
   $('pl-auto').parentElement.style.gridColumn = noShop ? '1 / -1' : '';
   $('pl-coll').style.display = noShop ? 'none' : '';
-  $('pl-auto').textContent = v.biz === undefined ? '—' : (num(v.biz) > 0 ? 'Рівень ' + Math.floor(num(v.biz)) : 'Немає');
+  $('pl-auto').textContent = v.bizm !== undefined ? (num(v.bizm) > 0 ? '+' + fmtR(num(v.bizm)) + '/хв' : 'Немає') : (v.biz === undefined ? '—' : (num(v.biz) > 0 ? 'Рівень ' + Math.floor(num(v.biz)) : 'Немає'));
   const grid = $('pl-grid');
   grid.innerHTML = '';
   if (!hasList) {
@@ -1281,6 +1281,10 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 53, date: '14 листопада', title: 'Бізнес приносить більше 📈', items: [
+    '💼 Дохід бізнесу: $15 за хвилину (було $10)',
+    '⬆️ Кожне покращення тепер додає +$15 за хвилину (було +$10)',
+  ]},
   { v: 52, date: '13 листопада', title: 'Бізнес став дешевшим 💸', items: [
     '💼 Бізнес: $60,000 (було $100,000)',
     '⬆️ Покращення: $30,000, далі на $60,000 дорожче',
