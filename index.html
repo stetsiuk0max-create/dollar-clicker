@@ -114,8 +114,9 @@
   .news-new { display: inline-block; background: #ffd54f; color: #3e2f00; font-size: 11px; font-weight: 800; border-radius: 8px; padding: 2px 7px; margin-left: 6px; vertical-align: middle; }
   .news-item ul { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.5; }
   .pic { width: 64px; height: 44px; object-fit: contain; display: block; }
-  .cell .e .pic { width: 100%; height: 84px; }
-  .cell .e { min-height: 84px; display: flex; align-items: center; justify-content: center; }
+  .cell .e .pic { width: 100%; height: 52px; }
+  .gcol[data-cat="house"] .cell .e .pic { height: 68px; }
+  .cell .e { min-height: 68px; display: flex; align-items: center; justify-content: center; }
   .item .ico:has(.pic) { width: 92px; flex-shrink: 0; }
   .item .ico .pic { width: 92px; height: 62px; }
   .bigpic { display: flex; align-items: center; justify-content: center; min-height: 150px; font-size: 90px; background: #1f4a30; border-radius: 16px; padding: 12px; }
@@ -218,8 +219,8 @@
   .gcol-h { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: .7; text-align: center; font-weight: 700; }
   .cell { background: #1f4a30; border-radius: 12px; text-align: center; padding: 12px 6px; }
   .cell .e { font-size: 30px; }
-  .cell small { display: block; font-size: 13px; font-weight: 700; margin-top: 6px; opacity: .9; }
-  .cell.empty { background: transparent; border: 2px dashed #2d5a3d; min-height: 124px; display: flex; align-items: center; justify-content: center; opacity: .6; font-size: 26px; }
+  .cell small { display: block; font-size: 12px; font-weight: 700; margin-top: 4px; opacity: .9; }
+  .cell.empty { background: transparent; border: 2px dashed #2d5a3d; min-height: 88px; display: flex; align-items: center; justify-content: center; opacity: .6; font-size: 26px; }
   .cell.locked { opacity: .35; filter: grayscale(1); }
 </style>
 </head>
@@ -447,7 +448,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 63;
+const APP_VERSION = 65;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
