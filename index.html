@@ -203,7 +203,7 @@
   .prof-head { text-align: center; padding: 4px 18px 12px; }
   .avatar { font-size: 60px; line-height: 1.1; }
   .pname { font-weight: 800; font-size: 20px; }
-  .acc { font-size: 13px; font-weight: 700; color: #b9f6ca; opacity: .85; margin-top: 2px; letter-spacing: .5px; user-select: text; -webkit-user-select: text; }
+  .acc { cursor: pointer; font-size: 13px; font-weight: 700; color: #b9f6ca; opacity: .85; margin-top: 2px; letter-spacing: .5px; user-select: text; -webkit-user-select: text; }
   .ptitle { color: #ffd54f; font-size: 14px; margin-top: 2px; }
   .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 14px 12px; }
   .stat { background: #1f4a30; border-radius: 12px; padding: 10px 12px; }
@@ -444,7 +444,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 57;
+const APP_VERSION = 58;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -1314,6 +1314,23 @@ const cyrb53 = (str, seed = 0) => {
   h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
   return 4294967296 * (2097151 & h2) + (h1 >>> 0);
 };
+
+// Копіювання ID по дотику
+function copyText(t) {
+  const fallback = () => {
+    const ta = document.createElement('textarea'); ta.value = t; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+    ta.remove(); return ok;
+  };
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t).then(() => true).catch(() => fallback());
+  return Promise.resolve(fallback());
+}
+['pacc', 'pl-acc'].forEach(id => $(id).addEventListener('click', () => {
+  const m = $(id).textContent.match(/#\d+/);
+  if (!m) return;
+  copyText(m[0]).then(ok => showToast(ok ? 'ID ' + m[0] + ' скопійовано' : 'Не вдалося скопіювати ID'));
+}));
 
 // ID акаунта прив'язаний до нікнейму: інший нік, інший ID. 6 цифр, однакові для всіх пристроїв.
 function accountId(name) {
