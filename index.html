@@ -414,9 +414,10 @@
         <div class="stat"><small>Усього зароблено</small><b id="pl-total"></b></div>
         <div class="stat"><small>Баланс зараз</small><b id="pl-bal"></b></div>
         <div class="stat"><small>За клік</small><b id="pl-click"></b></div>
+        <div class="stat"><small>👆 Кліків зроблено</small><b id="pl-sec"></b></div>
         <div class="stat"><small>Речей куплено</small><b id="pl-items"></b></div>
         <div class="stat"><small>💼 Бізнес</small><b id="pl-auto"></b></div>
-        <div class="stat"><small>⏱️ Час у грі</small><b id="pl-time"></b></div>
+        <div class="stat" style="grid-column: 1 / -1"><small>⏱️ Час у грі</small><b id="pl-time"></b></div>
       </div>
       <div class="coll-h" id="pl-coll"></div>
       <div class="grid" id="pl-grid"></div>
@@ -443,7 +444,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 60;
+const APP_VERSION = 61;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -1024,7 +1025,7 @@ async function lbSubmit() {
   const r = await fetch(`${LB_URL}/scores/${s.uid}.json`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: s.name, total, bal: Math.floor(s.score), items: s.owned.length, owned: s.owned, click: Math.round(perClick() * 10) / 10, sec: Math.round(perSec() * 10) / 10, biz: s.biz ? 1 + s.bizLvl : 0, bizm: Math.round(bizPerMin() * 10) / 10, av: s.avatar || '', pt: Math.floor(s.time), tag: s.tag, stag: s.stitle, t: Date.now() })
+    body: JSON.stringify({ name: s.name, total, bal: Math.floor(s.score), items: s.owned.length, owned: s.owned, click: Math.round(perClick() * 10) / 10, sec: Math.round(perSec() * 10) / 10, biz: s.biz ? 1 + s.bizLvl : 0, bizm: Math.round(bizPerMin() * 10) / 10, av: s.avatar || '', pt: Math.floor(s.time), cl: s.clicks, tag: s.tag, stag: s.stitle, t: Date.now() })
   });
   if (r.ok) lbSent = sig;
 }
@@ -1121,6 +1122,7 @@ function showPlayer(v, rank) {
   $('pl-total').textContent = fmt(num(v.total));
   $('pl-bal').textContent = v.bal === undefined ? '—' : fmt(num(v.bal));
   $('pl-click').textContent = fmtR(v.click === undefined ? 1 : num(v.click));
+  $('pl-sec').textContent = v.cl === undefined ? '—' : Math.floor(num(v.cl)).toLocaleString('en-US');
   $('pl-time').textContent = v.pt === undefined ? '—' : fmtTime(num(v.pt));
   $('pl-items').textContent = count + '/' + SHOP.length;
   const noShop = !SHOP.length;
