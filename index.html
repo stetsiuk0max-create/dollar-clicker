@@ -105,6 +105,7 @@
   .tb-right { display: flex; gap: 8px; align-items: center; margin-left: auto; }
   #open-news { position: relative; border: none; border-radius: 20px; padding: 8px 16px; background: #81d4fa; color: #01314a; font-size: 14px; font-weight: 800; }
   #open-news:active { filter: brightness(.9); }
+  #dot-chat { right: auto; left: -6px; background: #1e88e5; }
   #open-news .dot { top: -6px; right: -4px; }
   .news-item { background: #1f4a30; border-radius: 14px; padding: 12px 14px; }
   .news-item.fresh { box-shadow: inset 0 0 0 2px #ffd54f; }
@@ -136,6 +137,13 @@
   .mk-row { display: flex; gap: 8px; }
   .mk-row #mk-add { flex: 1.5; }
   .mk-row #mk-chats { flex: 1; background: #81c784; color: #0d3b17; padding: 15px 6px; font-size: 15px; }
+  .chitem { display: flex; align-items: center; gap: 12px; margin: 0 14px 6px; padding: 8px 12px; background: #1f4a30; border-radius: 14px; }
+  .chitem:empty { display: none; }
+  .chitem .ci { width: 76px; height: 52px; display: flex; align-items: center; justify-content: center; font-size: 30px; flex: none; }
+  .chitem .ci .pic { width: 76px; height: 52px; object-fit: contain; }
+  .chitem b { display: block; font-size: 15px; }
+  .chitem .cp { display: block; font-size: 18px; font-weight: 800; color: #ffd54f; }
+  .chitem .cn { display: block; font-size: 11px; opacity: .7; }
   .chrow { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: #1f4a30; border: none; border-radius: 14px; padding: 10px 12px; color: #fff; font-family: inherit; margin-bottom: 8px; }
   .chrow .ci { width: 54px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex: none; }
   .chrow .ci .pic { width: 54px; height: 40px; object-fit: contain; }
@@ -285,7 +293,7 @@
   </div>
   <div class="bar">
     <button id="open-up"   data-open="ov-up"><span class="bi">⚡</span>Покращення<span class="dot" id="dot-up"></span></button>
-    <button id="open-shop" data-open="ov-shop"><span class="bi">🛒</span>Магазин<span class="dot" id="dot-shop"></span></button>
+    <button id="open-shop" data-open="ov-shop"><span class="bi">🛒</span>Магазин<span class="dot" id="dot-shop"></span><span class="dot" id="dot-chat"></span></button>
     <button id="open-biz"  data-open="ov-biz"><span class="bi">💼</span>Бізнес<span class="dot" id="dot-biz"></span></button>
     <button id="open-prof" data-open="ov-prof"><span class="bi">👤</span>Профіль</button>
     <button id="open-game" data-open="ov-game"><span class="bi">🎲</span>Гра</button>
@@ -372,7 +380,7 @@
 </div>
 
 <!-- Гараж -->
-<div class="overlay" id="ov-garage" style="z-index: 13">
+<div class="overlay" id="ov-garage" style="z-index: 16">
   <div class="sheet">
     <div class="sheet-head"><h2 id="gar-title"></h2><button class="close">✕</button></div>
     <div class="hint" id="gar-sub" style="padding: 0 18px 10px"></div>
@@ -405,7 +413,7 @@
     <div class="scroll" style="padding: 0 18px 22px; text-align: center">
       <div id="ls-pic" class="bigpic"></div>
       <div class="mk-price" id="ls-price"></div>
-      <div class="hint" id="ls-seller"></div>
+      <button class="hint" id="ls-seller" style="background: none; border: none; font-family: inherit; text-decoration: underline; color: inherit; font-size: 15px; padding: 6px 0 2px"></button>
       <div class="mk-desc" id="ls-desc"></div>
       <button id="ls-act" class="sellbtn"></button>
       <button id="ls-chat" class="sellbtn" style="margin-top: 10px; background: #81c784; color: #0d3b17"></button>
@@ -443,14 +451,14 @@
 <div class="overlay" id="ov-chat" style="z-index: 14">
   <div class="sheet" style="height: 85%">
     <div class="sheet-head"><h2 id="ch-title" style="font-size: 20px"></h2><button id="ch-del" class="close" style="background: #7a2e2e">🗑️</button><button class="close">✕</button></div>
-    <div class="hint" id="ch-sub" style="padding: 0 18px 8px"></div>
+    <div id="ch-item" class="chitem"></div>
     <div class="chat-msgs" id="ch-msgs"></div>
     <div class="chat-in"><input id="ch-input" class="mk-input" type="text" maxlength="300" placeholder="Повідомлення…" autocomplete="off"><button id="ch-send">➤</button></div>
   </div>
 </div>
 
 <!-- Промокод -->
-<div class="overlay" id="ov-item" style="z-index: 14">
+<div class="overlay" id="ov-item" style="z-index: 17">
   <div class="sheet">
     <div class="sheet-head"><h2 id="item-title"></h2><button class="close">✕</button></div>
     <div class="scroll" style="padding: 0 18px 22px; text-align: center">
@@ -525,7 +533,7 @@
 </div>
 
 <!-- Профіль гравця -->
-<div class="overlay" id="ov-player" style="z-index: 11">
+<div class="overlay" id="ov-player" style="z-index: 15">
   <div class="sheet">
     <div class="sheet-head"><h2>👤 Профіль гравця</h2><button class="close">✕</button></div>
     <div class="scroll">
@@ -570,7 +578,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 79;
+const APP_VERSION = 82;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -1328,7 +1336,7 @@ function showPlayer(v, rank) {
   const tg = renderTitle($('pl-title'), typeof v.tag === 'string' ? v.tag : '', typeof v.stag === 'string' ? v.stag : '', '');
   $('pl-title').style.display = tg ? '' : 'none';
   $('pl-avatar').textContent = avatarOf(v);
-  $('pl-rank').textContent = (['🥇', '🥈', '🥉'][rank - 1] || '') + ' ' + rank + (lbTab === 'total' ? ' місце за зароблені гроші' : ' місце за балансом');
+  $('pl-rank').textContent = rank ? (['🥇', '🥈', '🥉'][rank - 1] || '') + ' ' + rank + (lbTab === 'total' ? ' місце за зароблені гроші' : ' місце за балансом') : '';
   $('pl-total').textContent = fmt(num(v.total));
   $('pl-bal').textContent = v.bal === undefined ? '—' : fmt(num(v.bal));
   $('pl-click').textContent = fmtR(v.click === undefined ? 1 : num(v.click));
@@ -1592,6 +1600,17 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 82, date: '15 листопада', title: 'Сповіщення про повідомлення', items: [
+    '🔵 Коли вам пишуть під товаром, на кнопці «Магазин» з’являється синій лічильник (без спливаючого вікна зверху)',
+    '🏪 Його також видно на кнопці «Ринок» у магазині та на «Чати» на ринку',
+  ]},
+  { v: 81, date: '15 листопада', title: 'Профіль продавця', items: [
+    '🏪 У товарі на ринку завжди видно продавця (ім’я та ID)',
+    '👤 Торкніться продавця, щоб відкрити його профіль',
+  ]},
+  { v: 80, date: '15 листопада', title: 'Товар у чаті', items: [
+    '💬 Угорі чату тепер видно фото, назву й ціну товару, під яким ви пишете',
+  ]},
   { v: 79, date: '15 листопада', title: 'Ціна без обмежень', items: [
     '🏪 На ринку тепер можна поставити будь-яку ціну',
   ]},
@@ -1986,12 +2005,22 @@ function mkShowListing(l) {
   $('ls-title').textContent = l.it.name;
   setIcon($('ls-pic'), l.it, true);
   $('ls-price').textContent = fmt(l.p);
-  $('ls-seller').textContent = l.u === s.uid ? 'Ваше оголошення' : `👤 Продавець: ${l.n}${l.n ? ' · ' + accountId(l.n) : ''}`;
+  $('ls-seller').textContent = `👤 Продавець: ${l.n}${l.u === s.uid ? ' (ви)' : ''} · ${accountId(l.n)}  ›`;
   $('ls-desc').textContent = l.d || 'Без опису';
   $('ls-act').textContent = l.u === s.uid ? '↩️ Зняти з продажу' : `🛒 Купити за ${fmt(l.p)}`;
   $('ls-chat').textContent = l.u === s.uid ? '💬 Мої чати' : '💬 Написати продавцю';
   $('ov-listing').classList.add('open');
 }
+// Профіль продавця (беремо його запис з рейтингу)
+$('ls-seller').onclick = async () => {
+  const l = mkOpen; if (!l || !l.u) return;
+  try {
+    const r = await fetch(`${LB_URL}/scores/${encodeURIComponent(l.u)}.json`);
+    const v = r.ok ? await r.json() : null;
+    if (!v || typeof v !== 'object') { showToast('Профіль продавця поки недоступний'); return; }
+    showPlayer(v, 0);
+  } catch (e) { showToast('⚠️ Немає зв’язку з сервером'); }
+};
 $('ls-act').onclick = () => { const l = mkOpen; if (!l) return; if (l.u === s.uid) mkCancel(l); else mkBuy(l); };
 
 // Займаємо оголошення: запис /sold/{id} можна створити лише раз, тож двоє людей не купять одне й те саме
@@ -2143,13 +2172,19 @@ async function chLoadList() {
   try {
     const r = await fetch(`${UC}/${s.uid}.json`); if (!r.ok) return;
     const all = await r.json() || {}, seen = chSeen();
-    chRows = Object.entries(all).filter(([k, v]) => v && typeof v === 'object').map(([k, v]) => ({ key: k, lid: String(v.l || ''), i: String(v.i || ''), wu: String(v.wu || ''), w: String(v.w || 'Гравець').slice(0, 30), x: String(v.x || '').slice(0, 300), t: Number(v.t) || 0, f: String(v.f || '') })).sort((a, b) => b.t - a.t);
+    chRows = Object.entries(all).filter(([k, v]) => v && typeof v === 'object').map(([k, v]) => ({ key: k, lid: String(v.l || ''), i: String(v.i || ''), wu: String(v.wu || ''), w: String(v.w || 'Гравець').slice(0, 30), x: String(v.x || '').slice(0, 300), t: Number(v.t) || 0, f: String(v.f || ''), p: Number(v.p) || 0 })).sort((a, b) => b.t - a.t);
     const un = chRows.filter(c => c.f !== s.uid && c.t > (seen[c.key] || 0));
-    if (chInit && un.length > chUnread && !(chCur && $('ov-chat').classList.contains('open'))) { const n = un[0]; showToast(`💬 ${n.w}: ${n.x.slice(0, 40)}`); vibrate([30, 40, 30]); }
-    chUnread = un.length; chInit = true;
-    $('mk-chats').textContent = '💬 Чати' + (chUnread ? ` (${chUnread})` : '');
+    chUnread = un.length; chInit = true; chBadge();
     if ($('ov-chats').classList.contains('open')) chRender();
   } catch (e) {}
+}
+// Лічильник нових повідомлень: на «Магазині», на «Ринку» і на «Чатах»
+function chBadge() {
+  const seen = chSeen();
+  chUnread = chRows.filter(c => c.f !== s.uid && c.t > (seen[c.key] || 0)).length;
+  $('mk-chats').textContent = '💬 Чати' + (chUnread ? ` (${chUnread})` : '');
+  showDot($('dot-chat'), chUnread);
+  const pr = marketBtn.querySelector('.price'); if (pr) pr.textContent = chUnread ? `💬 ${chUnread}` : '›';
 }
 function chRender() {
   const box = $('chl-list'); box.innerHTML = ''; const seen = chSeen();
@@ -2164,7 +2199,7 @@ function chRender() {
     cb.append(n, sm);
     const ct = document.createElement('div'); ct.className = 'ct'; ct.textContent = chTime(c.t);
     b.append(ci, cb, ct);
-    b.onclick = () => openChat({ key: c.key, lid: c.lid, i: c.i, wu: c.wu, w: c.w });
+    b.onclick = () => openChat({ key: c.key, lid: c.lid, i: c.i, wu: c.wu, w: c.w, p: c.p });
     box.appendChild(b);
   });
 }
@@ -2173,7 +2208,15 @@ function openChat(info) {
   chCur = info; chLast = '';
   const it = mkItem(info.i);
   $('ch-title').textContent = '💬 ' + info.w;
-  $('ch-sub').textContent = it ? `Товар: ${it.name}` : '';
+  const box = $('ch-item'); box.innerHTML = '';
+  const lst = mkList.find(l => l.id === info.lid), price = info.p || (lst && lst.p);
+  if (it) {
+    const ci = document.createElement('div'); ci.className = 'ci'; setIcon(ci, it, true);
+    const tx = document.createElement('div'), nm = document.createElement('b'); nm.textContent = it.name; tx.appendChild(nm);
+    if (price) { const cp = document.createElement('span'); cp.className = 'cp'; cp.textContent = fmt(price); tx.appendChild(cp); }
+    else { const cn = document.createElement('span'); cn.className = 'cn'; cn.textContent = 'Оголошення вже неактуальне'; tx.appendChild(cn); }
+    box.append(ci, tx);
+  }
   $('ch-msgs').innerHTML = ''; $('ch-input').value = '';
   $('ov-chat').classList.add('open');
   chPoll(); clearInterval(chTimer); chTimer = setInterval(() => { if ($('ov-chat').classList.contains('open')) chPoll(); else clearInterval(chTimer); }, 4000);
@@ -2196,7 +2239,7 @@ async function chPoll() {
       box.appendChild(d);
     });
     if (atEnd) box.scrollTop = box.scrollHeight;
-    if (rows.length) chMark(cur.key, rows[rows.length - 1].t);
+    if (rows.length) { chMark(cur.key, rows[rows.length - 1].t); chBadge(); if ($('ov-chats').classList.contains('open')) chRender(); }
   } catch (e) {}
 }
 let chSending = false;
@@ -2208,7 +2251,7 @@ async function chSend() {
     const r = await fetch(`${CH}/${cur.key}/msgs.json`, { method: 'POST', headers: MK_HDR, body: JSON.stringify({ u: s.uid, n: s.name || 'Гравець', x, t }) });
     if (!r.ok) throw new Error('chat');
     $('ch-input').value = '';
-    const base = { i: cur.i, l: cur.lid, x: x.slice(0, 80), t, f: s.uid };
+    const base = { i: cur.i, l: cur.lid, x: x.slice(0, 80), t, f: s.uid, ...(cur.p ? { p: cur.p } : {}) };
     await Promise.all([
       fetch(`${UC}/${s.uid}/${cur.key}.json`, { method: 'PUT', headers: MK_HDR, body: JSON.stringify({ ...base, wu: cur.wu, w: cur.w }) }),
       fetch(`${UC}/${cur.wu}/${cur.key}.json`, { method: 'PUT', headers: MK_HDR, body: JSON.stringify({ ...base, wu: s.uid, w: s.name || 'Гравець' }) }),
@@ -2230,7 +2273,7 @@ $('ch-del').onclick = async () => {
 $('ls-chat').onclick = () => {
   const l = mkOpen; if (!l) return;
   if (l.u === s.uid) { chOpenList(); return; }
-  openChat({ key: chKey(l.id, s.uid), lid: l.id, i: l.it.id, wu: l.u, w: l.n });
+  openChat({ key: chKey(l.id, s.uid), lid: l.id, i: l.it.id, wu: l.u, w: l.n, p: l.p });
 };
 $('mk-chats').onclick = chOpenList;
 setInterval(chLoadList, 20000);
