@@ -570,7 +570,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 77;
+const APP_VERSION = 78;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -1166,7 +1166,7 @@ function render() {
     e.b.classList.toggle('owned', have);
     const out = !have && soldOut(it), left = stockLeft(it), noRoom = noRoomFor(it);
     e.b.classList.toggle('dim', noRoom);
-    e.price.innerHTML = have ? `✓ Куплено<small class="sell">Продати за ${fmt(Math.floor(it.price / 2))}</small>` : (out ? 'Розпродано' : (noRoom ? 'Потрібен гараж' : fmt(it.price)));
+    e.price.innerHTML = have ? `${fmt(it.price)}<small class="sell">✓ Куплено</small>` : (out ? 'Розпродано' : (noRoom ? 'Потрібен гараж' : fmt(it.price)));
     if (e.stock) e.stock.textContent = it.limit ? (left == null ? `Залишилось: …/${it.limit}` : `Залишилось: ${left}/${it.limit}`) : '';
     e.b.disabled = !have && !noRoom && (out || s.score < it.price);
     if (!have && !out && !noRoom && s.score >= it.price) shopAfford++;
@@ -1592,6 +1592,9 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 78, date: '15 листопада', title: 'Ціна в магазині', items: [
+    '🛒 У куплених речей у магазині тепер видно і ціну, і напис «Куплено»',
+  ]},
   { v: 77, date: '15 листопада', title: 'Заголовок «Гаражі»', items: [
     '🅿️ У профілі, де показано гараж, стовпчик тепер підписаний «Гаражі»',
   ]},
