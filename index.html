@@ -570,7 +570,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 75;
+const APP_VERSION = 76;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -601,7 +601,7 @@ try {
   s.pool = (Number.isFinite(saved.pool) && saved.pool > 0) ? saved.pool : 0;
   s.bizCap = Math.max(0, Math.floor(saved.bizCap) || 0);
   s.stockGive = Array.isArray(saved.stockGive) ? saved.stockGive.filter(x => typeof x === 'string') : [];
-  if (saved.mktPend && typeof saved.mktPend.id === 'string' && typeof saved.mktPend.i === 'string' && Number.isFinite(saved.mktPend.p)) s.mktPend = { id: saved.mktPend.id, k: saved.mktPend.k === 'cancel' ? 'cancel' : 'buy', i: saved.mktPend.i, p: saved.mktPend.p, u: String(saved.mktPend.u || '') };
+  if (saved.mktPend && typeof saved.mktPend.id === 'string' && typeof saved.mktPend.i === 'string' && Number.isFinite(saved.mktPend.p)) s.mktPend = { id: saved.mktPend.id, k: saved.mktPend.k === 'cancel' ? 'cancel' : 'buy', i: saved.mktPend.i, p: saved.mktPend.p, u: String(saved.mktPend.u || ''), v: Number(saved.mktPend.v) || 1 };
   s.mktOut = Array.isArray(saved.mktOut) ? saved.mktOut.filter(o => o && typeof o.url === 'string' && (o.m === 'POST' || o.m === 'DELETE')).slice(0, 50) : [];
   // Автоклікер прибрано: повертаємо гроші за куплені (один раз)
   const oldAuto = Math.floor(saved.auto) || 0;
@@ -694,6 +694,7 @@ const carCap = () => Math.max(1, garageSlots());
 const noRoomFor = it => it.cat === 'car' && carsOwned() >= carCap();
 // Гараж не можна продати, якщо машин стане більше, ніж місць
 function canSell(it) {
+  if (typeof listedCnt === 'function' && listedCnt(it.id) >= cntIn(s.owned, it.id)) { showToast('🏪 Ця річ виставлена на ринку: спершу зніміть її з продажу'); return false; }
   if (!it.slots) return true;
   const after = Math.max(1, garageSlots() - it.slots);
   if (carsOwned() > after) { showToast('🅿️ Спершу продайте зайву машину: без гаража місце лише для 1'); return false; }
@@ -1585,6 +1586,11 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 76, date: '15 листопада', title: 'Річ лишається вашою 🏪', items: [
+    '🏪 Поки оголошення висить, річ лишається у вашій власності й у профілі',
+    '💰 Коли її купують, річ переходить покупцю, а гроші приходять вам',
+    '🔒 Виставлену річ не можна продати в магазин: спершу зніміть її з продажу',
+  ]},
   { v: 75, date: '15 листопада', title: 'Чат на ринку 💬', items: [
     '💬 Відкрийте товар на ринку й натисніть «Написати продавцю»',
     '📨 Усі ваші розмови зібрані в кнопці «Чати», нові повідомлення підсвічуються',
@@ -1911,7 +1917,7 @@ function mkClean(id, v) {
   if (!v || typeof v !== 'object') return null;
   const it = mkItem(v.i), p = Math.floor(Number(v.p));
   if (!it || !(p >= 1) || p > MK_PRICE_MAX * 10) return null;
-  return { id, u: String(v.u || ''), n: String(v.n || 'Гравець').slice(0, 30), it, p, d: String(v.d || '').slice(0, 200), t: Number(v.t) || 0 };
+  return { id, v: Number(v.v) || 1, u: String(v.u || ''), n: String(v.n || 'Гравець').slice(0, 30), it, p, d: String(v.d || '').slice(0, 200), t: Number(v.t) || 0 };
 }
 async function mkLoad() {
   try {
@@ -1923,6 +1929,8 @@ async function mkLoad() {
   mkLoaded = true; mkRender();
 }
 const mkMineList = () => mkList.filter(l => l.u === s.uid);
+// Скільки штук цієї речі вже виставлено (нові оголошення лишають річ у власності)
+function listedCnt(id) { return mkList.filter(l => l.u === s.uid && l.v >= 2 && l.it.id === id).length; }
 function mkRender() {
   $('mk-all').classList.toggle('on', !mkMine); $('mk-mine').classList.toggle('on', mkMine);
   $('mk-mine').textContent = `📋 Мої оголошення${mkLoaded ? ' (' + mkMineList().length + ')' : ''}`;
@@ -1999,9 +2007,9 @@ function mkFinish() {
     if (p.k === 'buy') {
       s.score = Math.max(0, s.score - p.p);
       s.owned.push(it.id);
-      if (p.u) s.mktOut.push({ m: 'POST', url: `${LB_URL}/inbox/${p.u}.json`, b: { a: p.p, i: p.i, n: s.name, t: Date.now() } });
+      if (p.u) s.mktOut.push({ m: 'POST', url: `${LB_URL}/inbox/${p.u}.json`, b: { a: p.p, i: p.i, n: s.name, t: Date.now(), r: p.v >= 2 ? 1 : 0 } });
       showToast('✅ Куплено: ' + it.name); vibrate([30, 40, 60]);
-    } else { s.owned.push(it.id); showToast('↩️ Знято з продажу: ' + it.name); }
+    } else { if (p.v < 2) s.owned.push(it.id); showToast('↩️ Знято з продажу: ' + it.name); }
   }
   s.mktOut.push({ m: 'DELETE', url: `${MK}/${p.id}.json` });
   save(); render(); mkFlush();
@@ -2015,7 +2023,7 @@ async function mkBuy(l) {
   if (noRoomFor(it)) { showToast('🅿️ Немає місця для машини: купіть гараж'); return; }
   if (s.score < l.p) { showToast('💸 Не вистачає грошей'); return; }
   mkBusy = true; showToast('⏳ Купуємо…');
-  s.mktPend = { id: l.id, k: 'buy', i: it.id, p: l.p, u: l.u }; save();
+  s.mktPend = { id: l.id, k: 'buy', i: it.id, p: l.p, u: l.u, v: l.v }; save();
   try {
     const res = await mkClaim(l.id, { b: s.uid, k: 'buy' });
     if (res === 'ok') { $('ov-listing').classList.remove('open'); mkFinish(); }
@@ -2025,9 +2033,9 @@ async function mkBuy(l) {
 }
 async function mkCancel(l) {
   if (mkBusy) return;
-  if (noRoomFor(l.it)) { showToast('🅿️ Немає місця для машини: спершу звільніть місце'); return; }
+  if (l.v < 2 && noRoomFor(l.it)) { showToast('🅿️ Немає місця для машини: спершу звільніть місце'); return; }
   mkBusy = true;
-  s.mktPend = { id: l.id, k: 'cancel', i: l.it.id, p: l.p, u: s.uid }; save();
+  s.mktPend = { id: l.id, k: 'cancel', i: l.it.id, p: l.p, u: s.uid, v: l.v }; save();
   try {
     const res = await mkClaim(l.id, { b: s.uid, k: 'cancel' });
     if (res === 'ok') { $('ov-listing').classList.remove('open'); mkFinish(); }
@@ -2053,7 +2061,7 @@ async function inboxPoll() {
       const d = await fetch(`${LB_URL}/inbox/${s.uid}/${k}.json`, { method: 'DELETE' });
       if (!d.ok || !v || !Number.isFinite(v.a) || v.a <= 0 || v.a > MK_PRICE_MAX * 10) continue;
       const it = mkItem(v.i);
-      s.score += v.a; save(); render();
+      s.score += v.a; if (v.r) dropOne(v.i); save(); render();
       showToast(`💰 ${String(v.n || 'Гравець').slice(0, 30)} купив «${it ? it.name : 'річ'}» за ${fmt(v.a)}`); vibrate([30, 40, 60]);
     }
   } catch (e) {}
@@ -2062,7 +2070,7 @@ async function inboxPoll() {
 // Нове оголошення
 function adRender() {
   const grid = $('ad-grid'); grid.innerHTML = '';
-  const mine = SHOP.filter(i => isOwned(i.id));
+  const mine = SHOP.filter(i => cntIn(s.owned, i.id) > listedCnt(i.id));
   if (mkSel && !isOwned(mkSel)) mkSel = null;
   if (!mine.length) { const d = document.createElement('div'); d.className = 'hint'; d.style.gridColumn = '1 / -1'; d.textContent = 'У вас поки немає речей для продажу. Купіть щось у магазині.'; grid.appendChild(d); }
   mine.forEach(it => {
@@ -2074,7 +2082,7 @@ function adRender() {
     grid.appendChild(c);
   });
   const it = mkSel && mkItem(mkSel);
-  $('ad-hint').textContent = it ? `У магазині ця річ коштує ${fmt(it.price)}. Ви отримаєте всю суму без комісії.` : '';
+  $('ad-hint').textContent = it ? `У магазині ця річ коштує ${fmt(it.price)}. Ви отримаєте всю суму без комісії. Річ лишається у вас, поки її не куплять.` : '';
 }
 $('mk-add').onclick = () => {
   mkSel = null; $('ad-price').value = ''; $('ad-desc').value = '';
@@ -2088,26 +2096,25 @@ $('ad-go').onclick = async () => {
   if (!(price >= 1)) { showToast('Вкажіть ціну'); return; }
   if (price > MK_PRICE_MAX) { showToast('Забагато: максимум ' + fmt(MK_PRICE_MAX)); return; }
   if (mkMineList().length >= MK_MAX) { showToast(`Можна мати не більше ${MK_MAX} оголошень`); return; }
+  if (listedCnt(it.id) >= cntIn(s.owned, it.id)) { showToast('Ця річ уже виставлена'); return; }
   if (!canSell(it)) return;
   const d = $('ad-desc').value.replace(/[\u0000-\u001f]+/g, ' ').trim().slice(0, 200);
   mkBusy = true;
-  dropOne(it.id); save(); render();   // товар «заморожується» на час продажу
   try {
-    const r = await fetch(MK + '.json', { method: 'POST', headers: MK_HDR, body: JSON.stringify({ u: s.uid, n: s.name || 'Гравець', i: it.id, p: price, d, t: Date.now() }) });
+    const r = await fetch(MK + '.json', { method: 'POST', headers: MK_HDR, body: JSON.stringify({ u: s.uid, n: s.name || 'Гравець', i: it.id, p: price, d, t: Date.now(), v: 2 }) });
     if (!r.ok) throw new Error('post');
     showToast('📢 Оголошення опубліковано'); vibrate([30, 40, 60]);
     $('ov-newad').classList.remove('open'); mkMine = true; mkCat = 'all';
   } catch (e) {
-    s.owned.push(it.id); save(); render();
     showToast('⚠️ Не вдалося опублікувати: перевірте інтернет та правила Firebase');
   } finally { mkBusy = false; mkLoad(); }
 };
 $('ad-price').addEventListener('input', e => { e.target.value = e.target.value.replace(/[^\d\s]/g, ''); });
 setInterval(() => {
   mkReconcile(); mkFlush(); inboxPoll();
-  if ($('ov-market').classList.contains('open') && !mkBusy) mkLoad();
+  if (!mkBusy && ($('ov-market').classList.contains('open') || Date.now() % 60000 < 20000)) mkLoad();
 }, 20000);
-setTimeout(() => { mkReconcile().then(mkFlush); inboxPoll(); }, 1500);
+setTimeout(() => { mkReconcile().then(mkFlush); inboxPoll(); mkLoad(); }, 1500);
 
 /* ---------- Чат між покупцем і продавцем (Firebase: /chats, /userchats) ---------- */
 const CH = `${LB_URL}/chats`, UC = `${LB_URL}/userchats`;
