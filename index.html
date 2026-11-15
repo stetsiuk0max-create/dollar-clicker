@@ -133,6 +133,26 @@
   .mcard .e { min-height: 78px; display: flex; align-items: center; justify-content: center; font-size: 36px; }
   .mcard .e .pic { width: 100%; height: 78px; object-fit: contain; }
   .mcard b { display: block; font-size: 13px; margin-top: 4px; }
+  .mk-row { display: flex; gap: 8px; }
+  .mk-row #mk-add { flex: 1.5; }
+  .mk-row #mk-chats { flex: 1; background: #81c784; color: #0d3b17; padding: 15px 6px; font-size: 15px; }
+  .chrow { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: #1f4a30; border: none; border-radius: 14px; padding: 10px 12px; color: #fff; font-family: inherit; margin-bottom: 8px; }
+  .chrow .ci { width: 54px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex: none; }
+  .chrow .ci .pic { width: 54px; height: 40px; object-fit: contain; }
+  .chrow .cb { flex: 1; min-width: 0; }
+  .chrow .cb b { display: block; font-size: 15px; }
+  .chrow .cb small { display: block; font-size: 12px; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chrow .ct { font-size: 11px; opacity: .6; flex: none; align-self: flex-start; }
+  .chrow.unread { background: #2e7d32; }
+  .chrow.unread .cb b::after { content: ' ●'; color: #ffd54f; }
+  .chat-msgs { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; -webkit-overflow-scrolling: touch; }
+  .bub { max-width: 78%; padding: 8px 12px; border-radius: 14px; font-size: 15px; word-break: break-word; white-space: pre-wrap; background: #1f4a30; align-self: flex-start; }
+  .bub.me { align-self: flex-end; background: #2e7d32; }
+  .bub small { display: block; font-size: 10px; opacity: .6; margin-top: 2px; text-align: right; }
+  .chat-in { display: flex; gap: 8px; padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid #2d5a3d; }
+  .chat-in input { flex: 1; min-width: 0; }
+  .chat-in button { border: none; border-radius: 12px; background: #ffd54f; color: #3e2f00; font-size: 20px; padding: 0 16px; font-weight: 800; }
+  .mcard .msel { display: block; font-size: 12px; opacity: .8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; }
   .mcard .mp { display: block; font-size: 16px; font-weight: 800; color: #ffd54f; margin-top: 2px; }
   .mcard .mine-badge { position: absolute; top: 6px; left: 6px; background: #ffd54f; color: #3e2f00; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 8px; }
   .cell.pick { border: 2px solid transparent; }
@@ -368,7 +388,7 @@
   <div class="sheet" style="height: 85%">
     <div class="sheet-head"><h2>🏪 Ринок</h2><button class="close">✕</button></div>
     <div class="mk-top">
-      <button id="mk-add" class="sellbtn">➕ Додати оголошення</button>
+      <div class="mk-row"><button id="mk-add" class="sellbtn">➕ Додати оголошення</button><button id="mk-chats" class="sellbtn">💬 Чати</button></div>
       <div class="mk-tabs"><button id="mk-all" class="on">🛍️ Усі оголошення</button><button id="mk-mine">📋 Мої оголошення</button></div>
     </div>
     <div class="mk-chips" id="mk-chips"></div>
@@ -388,6 +408,7 @@
       <div class="hint" id="ls-seller"></div>
       <div class="mk-desc" id="ls-desc"></div>
       <button id="ls-act" class="sellbtn"></button>
+      <button id="ls-chat" class="sellbtn" style="margin-top: 10px; background: #81c784; color: #0d3b17"></button>
     </div>
   </div>
 </div>
@@ -405,6 +426,26 @@
       <textarea id="ad-desc" class="mk-input" rows="3" maxlength="200" placeholder="Розкажіть про товар" style="resize: none"></textarea>
       <button id="ad-go" class="sellbtn" style="margin-top: 16px">📢 Опублікувати</button>
     </div>
+  </div>
+</div>
+
+<!-- Чати -->
+<div class="overlay" id="ov-chats" style="z-index: 13">
+  <div class="sheet" style="height: 85%">
+    <div class="sheet-head"><h2>💬 Чати</h2><button class="close">✕</button></div>
+    <div class="scroll" style="padding: 0 14px 22px; flex: 1; min-height: 0">
+      <div id="chl-note" class="hint" style="padding: 4px 0 10px"></div>
+      <div id="chl-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ov-chat" style="z-index: 14">
+  <div class="sheet" style="height: 85%">
+    <div class="sheet-head"><h2 id="ch-title" style="font-size: 20px"></h2><button id="ch-del" class="close" style="background: #7a2e2e">🗑️</button><button class="close">✕</button></div>
+    <div class="hint" id="ch-sub" style="padding: 0 18px 8px"></div>
+    <div class="chat-msgs" id="ch-msgs"></div>
+    <div class="chat-in"><input id="ch-input" class="mk-input" type="text" maxlength="300" placeholder="Повідомлення…" autocomplete="off"><button id="ch-send">➤</button></div>
   </div>
 </div>
 
@@ -529,7 +570,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 73;
+const APP_VERSION = 75;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -1544,6 +1585,15 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 75, date: '15 листопада', title: 'Чат на ринку 💬', items: [
+    '💬 Відкрийте товар на ринку й натисніть «Написати продавцю»',
+    '📨 Усі ваші розмови зібрані в кнопці «Чати», нові повідомлення підсвічуються',
+    '🗑️ Чат можна видалити (зникне в обох співрозмовників)',
+  ]},
+  { v: 74, date: '15 листопада', title: 'Хто продає 👤', items: [
+    '🏪 На ринку під кожним товаром видно ім’я продавця',
+    '🆔 У відкритому товарі ще й ID продавця',
+  ]},
   { v: 73, date: '15 листопада', title: 'Нова машина 🚗', items: [
     '🚗 У магазині з’явився Daewoo Lanos за $50,000 (20 штук на всю гру)',
   ]},
@@ -1897,7 +1947,8 @@ function mkRender() {
     const e = document.createElement('div'); e.className = 'e'; setIcon(e, l.it, true);
     const n = document.createElement('b'); n.textContent = l.it.name;
     const pr = document.createElement('span'); pr.className = 'mp'; pr.textContent = fmt(l.p);
-    c.append(e, n, pr);
+    const sl = document.createElement('small'); sl.className = 'msel'; sl.textContent = l.u === s.uid ? '👤 Ви' : '👤 ' + l.n;
+    c.append(e, n, pr, sl);
     if (l.u === s.uid && !mkMine) { const bd = document.createElement('span'); bd.className = 'mine-badge'; bd.textContent = 'Ваше'; c.appendChild(bd); }
     c.onclick = () => mkShowListing(l);
     grid.appendChild(c);
@@ -1912,9 +1963,10 @@ function mkShowListing(l) {
   $('ls-title').textContent = l.it.name;
   setIcon($('ls-pic'), l.it, true);
   $('ls-price').textContent = fmt(l.p);
-  $('ls-seller').textContent = l.u === s.uid ? 'Ваше оголошення' : `Продавець: ${l.n}`;
+  $('ls-seller').textContent = l.u === s.uid ? 'Ваше оголошення' : `👤 Продавець: ${l.n}${l.n ? ' · ' + accountId(l.n) : ''}`;
   $('ls-desc').textContent = l.d || 'Без опису';
   $('ls-act').textContent = l.u === s.uid ? '↩️ Зняти з продажу' : `🛒 Купити за ${fmt(l.p)}`;
+  $('ls-chat').textContent = l.u === s.uid ? '💬 Мої чати' : '💬 Написати продавцю';
   $('ov-listing').classList.add('open');
 }
 $('ls-act').onclick = () => { const l = mkOpen; if (!l) return; if (l.u === s.uid) mkCancel(l); else mkBuy(l); };
@@ -2056,6 +2108,111 @@ setInterval(() => {
   if ($('ov-market').classList.contains('open') && !mkBusy) mkLoad();
 }, 20000);
 setTimeout(() => { mkReconcile().then(mkFlush); inboxPoll(); }, 1500);
+
+/* ---------- Чат між покупцем і продавцем (Firebase: /chats, /userchats) ---------- */
+const CH = `${LB_URL}/chats`, UC = `${LB_URL}/userchats`;
+let chCur = null, chTimer = null, chUnread = 0, chInit = false, chLast = '';
+const chKey = (lid, buyer) => lid + '_' + buyer;
+const chSeen = () => { try { return JSON.parse(localStorage.getItem('clicker_chat_seen')) || {}; } catch (e) { return {}; } };
+const chMark = (k, t) => { try { const o = chSeen(); if ((o[k] || 0) < t) { o[k] = t; localStorage.setItem('clicker_chat_seen', JSON.stringify(o)); } } catch (e) {} };
+const chTime = t => { const d = new Date(t), n = new Date(), hm = d.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }); return d.toDateString() === n.toDateString() ? hm : d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' }) + ' ' + hm; };
+let chRows = [];
+async function chLoadList() {
+  try {
+    const r = await fetch(`${UC}/${s.uid}.json`); if (!r.ok) return;
+    const all = await r.json() || {}, seen = chSeen();
+    chRows = Object.entries(all).filter(([k, v]) => v && typeof v === 'object').map(([k, v]) => ({ key: k, lid: String(v.l || ''), i: String(v.i || ''), wu: String(v.wu || ''), w: String(v.w || 'Гравець').slice(0, 30), x: String(v.x || '').slice(0, 300), t: Number(v.t) || 0, f: String(v.f || '') })).sort((a, b) => b.t - a.t);
+    const un = chRows.filter(c => c.f !== s.uid && c.t > (seen[c.key] || 0));
+    if (chInit && un.length > chUnread && !(chCur && $('ov-chat').classList.contains('open'))) { const n = un[0]; showToast(`💬 ${n.w}: ${n.x.slice(0, 40)}`); vibrate([30, 40, 30]); }
+    chUnread = un.length; chInit = true;
+    $('mk-chats').textContent = '💬 Чати' + (chUnread ? ` (${chUnread})` : '');
+    if ($('ov-chats').classList.contains('open')) chRender();
+  } catch (e) {}
+}
+function chRender() {
+  const box = $('chl-list'); box.innerHTML = ''; const seen = chSeen();
+  $('chl-note').textContent = chRows.length ? '' : 'Розмов поки немає. Відкрийте товар на ринку й натисніть «Написати продавцю».';
+  chRows.forEach(c => {
+    const it = mkItem(c.i), b = document.createElement('button');
+    b.className = 'chrow' + (c.f !== s.uid && c.t > (seen[c.key] || 0) ? ' unread' : '');
+    const ci = document.createElement('div'); ci.className = 'ci'; if (it) setIcon(ci, it, true); else ci.textContent = '💬';
+    const cb = document.createElement('div'); cb.className = 'cb';
+    const n = document.createElement('b'); n.textContent = c.w;
+    const sm = document.createElement('small'); sm.textContent = (it ? it.name + ': ' : '') + (c.f === s.uid ? 'Ви: ' : '') + c.x;
+    cb.append(n, sm);
+    const ct = document.createElement('div'); ct.className = 'ct'; ct.textContent = chTime(c.t);
+    b.append(ci, cb, ct);
+    b.onclick = () => openChat({ key: c.key, lid: c.lid, i: c.i, wu: c.wu, w: c.w });
+    box.appendChild(b);
+  });
+}
+function chOpenList() { chRender(); $('ov-chats').classList.add('open'); chLoadList(); }
+function openChat(info) {
+  chCur = info; chLast = '';
+  const it = mkItem(info.i);
+  $('ch-title').textContent = '💬 ' + info.w;
+  $('ch-sub').textContent = it ? `Товар: ${it.name}` : '';
+  $('ch-msgs').innerHTML = ''; $('ch-input').value = '';
+  $('ov-chat').classList.add('open');
+  chPoll(); clearInterval(chTimer); chTimer = setInterval(() => { if ($('ov-chat').classList.contains('open')) chPoll(); else clearInterval(chTimer); }, 4000);
+}
+async function chPoll() {
+  const cur = chCur; if (!cur) return;
+  try {
+    const r = await fetch(`${CH}/${cur.key}/msgs.json`); if (!r.ok || cur !== chCur) return;
+    const all = await r.json() || {};
+    const rows = Object.entries(all).filter(([k, v]) => v && typeof v === 'object').map(([k, v]) => ({ k, u: String(v.u || ''), n: String(v.n || '').slice(0, 30), x: String(v.x || '').slice(0, 300), t: Number(v.t) || 0 })).sort((a, b) => a.t - b.t);
+    const sig = rows.length + '|' + (rows.length ? rows[rows.length - 1].k : '');
+    if (sig === chLast) return; chLast = sig;
+    const box = $('ch-msgs'), atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 60 || !box.children.length;
+    box.innerHTML = '';
+    if (!rows.length) { const d = document.createElement('div'); d.className = 'hint'; d.style.margin = 'auto'; d.textContent = 'Напишіть перше повідомлення'; box.appendChild(d); }
+    rows.forEach(m => {
+      const d = document.createElement('div'); d.className = 'bub' + (m.u === s.uid ? ' me' : '');
+      d.appendChild(document.createTextNode(m.x));
+      const sm = document.createElement('small'); sm.textContent = chTime(m.t); d.appendChild(sm);
+      box.appendChild(d);
+    });
+    if (atEnd) box.scrollTop = box.scrollHeight;
+    if (rows.length) chMark(cur.key, rows[rows.length - 1].t);
+  } catch (e) {}
+}
+let chSending = false;
+async function chSend() {
+  const cur = chCur, x = $('ch-input').value.replace(/[\u0000-\u001f]+/g, ' ').trim().slice(0, 300);
+  if (!cur || !x || chSending) return;
+  chSending = true; const t = Date.now();
+  try {
+    const r = await fetch(`${CH}/${cur.key}/msgs.json`, { method: 'POST', headers: MK_HDR, body: JSON.stringify({ u: s.uid, n: s.name || 'Гравець', x, t }) });
+    if (!r.ok) throw new Error('chat');
+    $('ch-input').value = '';
+    const base = { i: cur.i, l: cur.lid, x: x.slice(0, 80), t, f: s.uid };
+    await Promise.all([
+      fetch(`${UC}/${s.uid}/${cur.key}.json`, { method: 'PUT', headers: MK_HDR, body: JSON.stringify({ ...base, wu: cur.wu, w: cur.w }) }),
+      fetch(`${UC}/${cur.wu}/${cur.key}.json`, { method: 'PUT', headers: MK_HDR, body: JSON.stringify({ ...base, wu: s.uid, w: s.name || 'Гравець' }) }),
+    ]);
+    chMark(cur.key, t); chPoll(); chLoadList();
+  } catch (e) { showToast('⚠️ Не вдалося надіслати: перевірте інтернет та правила Firebase'); }
+  finally { chSending = false; }
+}
+$('ch-send').onclick = chSend;
+$('ch-input').addEventListener('keydown', e => { if (e.key === 'Enter') chSend(); });
+$('ch-del').onclick = async () => {
+  const cur = chCur; if (!cur) return;
+  if (!confirm('Видалити чат? Він зникне в обох співрозмовників.')) return;
+  try {
+    await Promise.all([`${CH}/${cur.key}.json`, `${UC}/${s.uid}/${cur.key}.json`, `${UC}/${cur.wu}/${cur.key}.json`].map(u => fetch(u, { method: 'DELETE' })));
+    $('ov-chat').classList.remove('open'); chCur = null; showToast('🗑️ Чат видалено'); chLoadList();
+  } catch (e) { showToast('⚠️ Не вдалося видалити, спробуйте пізніше'); }
+};
+$('ls-chat').onclick = () => {
+  const l = mkOpen; if (!l) return;
+  if (l.u === s.uid) { chOpenList(); return; }
+  openChat({ key: chKey(l.id, s.uid), lid: l.id, i: l.it.id, wu: l.u, w: l.n });
+};
+$('mk-chats').onclick = chOpenList;
+setInterval(chLoadList, 20000);
+setTimeout(chLoadList, 2500);
 
 render();
 awayCheck();
