@@ -420,7 +420,7 @@
       <div class="mk-label" style="margin-top: 0">1. Оберіть товар</div>
       <div class="grid" id="ad-grid" style="padding: 0"></div>
       <div class="mk-label">2. Ціна, $</div>
-      <input id="ad-price" class="mk-input" type="text" inputmode="numeric" placeholder="Наприклад, 20000" autocomplete="off">
+      <input id="ad-price" class="mk-input" maxlength="15" type="text" inputmode="numeric" placeholder="Наприклад, 20000" autocomplete="off">
       <div class="hint" id="ad-hint" style="text-align: left; padding-top: 4px"></div>
       <div class="mk-label">3. Опис (необов’язково)</div>
       <textarea id="ad-desc" class="mk-input" rows="3" maxlength="200" placeholder="Розкажіть про товар" style="resize: none"></textarea>
@@ -570,7 +570,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 78;
+const APP_VERSION = 79;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -1592,6 +1592,9 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 79, date: '15 листопада', title: 'Ціна без обмежень', items: [
+    '🏪 На ринку тепер можна поставити будь-яку ціну',
+  ]},
   { v: 78, date: '15 листопада', title: 'Ціна в магазині', items: [
     '🛒 У куплених речей у магазині тепер видно і ціну, і напис «Куплено»',
   ]},
@@ -1922,13 +1925,13 @@ setInterval(save, 3000);
 document.addEventListener('visibilitychange', save);
 
 /* ---------- Ринок (Firebase: /market, /sold, /inbox) ---------- */
-const MK = `${LB_URL}/market`, MK_MAX = 6, MK_PRICE_MAX = 1e9, MK_HDR = { 'Content-Type': 'application/json' };
+const MK = `${LB_URL}/market`, MK_MAX = 6, MK_PRICE_MAX = Number.MAX_SAFE_INTEGER, MK_HDR = { 'Content-Type': 'application/json' };
 let mkList = [], mkLoaded = false, mkOk = true, mkCat = 'all', mkMine = false, mkBusy = false, mkSel = null, mkOpen = null;
 const mkItem = id => SHOP.find(x => x.id === id);
 function mkClean(id, v) {
   if (!v || typeof v !== 'object') return null;
   const it = mkItem(v.i), p = Math.floor(Number(v.p));
-  if (!it || !(p >= 1) || p > MK_PRICE_MAX * 10) return null;
+  if (!it || !(p >= 1) || p > MK_PRICE_MAX) return null;
   return { id, v: Number(v.v) || 1, u: String(v.u || ''), n: String(v.n || 'Гравець').slice(0, 30), it, p, d: String(v.d || '').slice(0, 200), t: Number(v.t) || 0 };
 }
 async function mkLoad() {
@@ -2071,7 +2074,7 @@ async function inboxPoll() {
     const all = await r.json(); if (!all || typeof all !== 'object') return;
     for (const [k, v] of Object.entries(all)) {
       const d = await fetch(`${LB_URL}/inbox/${s.uid}/${k}.json`, { method: 'DELETE' });
-      if (!d.ok || !v || !Number.isFinite(v.a) || v.a <= 0 || v.a > MK_PRICE_MAX * 10) continue;
+      if (!d.ok || !v || !Number.isFinite(v.a) || v.a <= 0 || v.a > MK_PRICE_MAX) continue;
       const it = mkItem(v.i);
       s.score += v.a; if (v.r) dropOne(v.i); save(); render();
       showToast(`💰 ${String(v.n || 'Гравець').slice(0, 30)} купив «${it ? it.name : 'річ'}» за ${fmt(v.a)}`); vibrate([30, 40, 60]);
@@ -2106,7 +2109,7 @@ $('ad-go').onclick = async () => {
   if (!it || !isOwned(it.id)) { showToast('Оберіть товар'); return; }
   const price = Math.floor(Number($('ad-price').value.replace(/[\s,$]/g, '')));
   if (!(price >= 1)) { showToast('Вкажіть ціну'); return; }
-  if (price > MK_PRICE_MAX) { showToast('Забагато: максимум ' + fmt(MK_PRICE_MAX)); return; }
+  if (!Number.isSafeInteger(price)) { showToast('Задовге число'); return; }
   if (mkMineList().length >= MK_MAX) { showToast(`Можна мати не більше ${MK_MAX} оголошень`); return; }
   if (listedCnt(it.id) >= cntIn(s.owned, it.id)) { showToast('Ця річ уже виставлена'); return; }
   if (!canSell(it)) return;
