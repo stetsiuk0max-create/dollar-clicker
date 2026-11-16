@@ -437,6 +437,17 @@
   </div>
 </div>
 
+<!-- Повідомлення про продаж -->
+<div class="overlay" id="ov-sold" style="z-index: 20">
+  <div class="sheet">
+    <div class="sheet-head"><h2>💰 Вашу річ купили!</h2></div>
+    <div class="scroll" style="padding: 0 18px 22px">
+      <div id="sold-list"></div>
+      <button id="sold-ok" class="sellbtn" style="margin-top: 8px">Чудово 👍</button>
+    </div>
+  </div>
+</div>
+
 <!-- Чати -->
 <div class="overlay" id="ov-chats" style="z-index: 13">
   <div class="sheet" style="height: 85%">
@@ -578,7 +589,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 82;
+const APP_VERSION = 83;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -1600,6 +1611,10 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 83, date: '16 листопада', title: 'Вашу річ купили 💰', items: [
+    '🏪 Коли хтось купує вашу річ на ринку, на екрані з’являється повідомлення: хто купив, що і за скільки',
+    '📴 Якщо ви були не в мережі, повідомлення з’явиться, щойно ви зайдете в гру',
+  ]},
   { v: 82, date: '15 листопада', title: 'Сповіщення про повідомлення', items: [
     '🔵 Коли вам пишуть під товаром, на кнопці «Магазин» з’являється синій лічильник (без спливаючого вікна зверху)',
     '🏪 Його також видно на кнопці «Ринок» у магазині та на «Чати» на ринку',
@@ -2096,6 +2111,18 @@ async function mkReconcile() {
     if (v && v.b === s.uid) mkFinish(); else { s.mktPend = null; save(); }
   } catch (e) {}
 }
+// Велике повідомлення на екрані, коли вашу річ купили
+function soldNotice(it, buyer, amount) {
+  const list = $('sold-list');
+  const row = document.createElement('div'); row.className = 'chrow'; row.style.cursor = 'default';
+  const ci = document.createElement('div'); ci.className = 'ci'; if (it) setIcon(ci, it, true); else ci.textContent = '💰';
+  const cb = document.createElement('div'); cb.className = 'cb';
+  const b = document.createElement('b'); b.textContent = `${buyer} купив «${it ? it.name : 'річ'}»`;
+  const sm = document.createElement('small'); sm.style.whiteSpace = 'normal'; sm.textContent = `Ви отримали ${fmt(amount)}`;
+  cb.append(b, sm); row.append(ci, cb); list.appendChild(row);
+  $('ov-sold').classList.add('open');
+}
+$('sold-ok').onclick = () => { $('ov-sold').classList.remove('open'); $('sold-list').innerHTML = ''; };
 // Гроші за продані речі
 async function inboxPoll() {
   try {
@@ -2106,7 +2133,7 @@ async function inboxPoll() {
       if (!d.ok || !v || !Number.isFinite(v.a) || v.a <= 0 || v.a > MK_PRICE_MAX) continue;
       const it = mkItem(v.i);
       s.score += v.a; if (v.r) dropOne(v.i); save(); render();
-      showToast(`💰 ${String(v.n || 'Гравець').slice(0, 30)} купив «${it ? it.name : 'річ'}» за ${fmt(v.a)}`); vibrate([30, 40, 60]);
+      soldNotice(it, String(v.n || 'Гравець').slice(0, 30), v.a); vibrate([30, 40, 60]);
     }
   } catch (e) {}
 }
