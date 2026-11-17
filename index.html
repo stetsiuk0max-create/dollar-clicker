@@ -365,6 +365,11 @@
         <button id="open-ach" class="achbtn" data-open="ov-ach"><span>🏅 Досягнення</span><small id="ach-count"></small></button>
         <button id="open-promo" class="achbtn promo" data-open="ov-promo"><span>🎁 Промокод</span><small>Ввести код ›</small></button>
       </div>
+      <div class="backup" id="ga-box">
+        <div class="coll-h">☁️ Акаунт Google</div>
+        <div class="hint" id="ga-msg" style="text-align: left; padding: 0 0 8px"></div>
+        <div class="brow"><button id="ga-btn" style="flex: 1">🔐 Увійти через Google</button></div>
+      </div>
       <div class="backup">
         <div class="coll-h">💾 Резервна копія прогресу</div>
         <textarea id="code" placeholder="Тут з'явиться код збереження. Щоб завантажити прогрес, вставте код сюди." spellcheck="false" autocomplete="off"></textarea>
@@ -444,6 +449,17 @@
     <div class="scroll" style="padding: 0 18px 22px">
       <div id="sold-list"></div>
       <button id="sold-ok" class="sellbtn" style="margin-top: 8px">Чудово 👍</button>
+    </div>
+  </div>
+</div>
+
+<!-- Акаунт Google -->
+<div class="overlay" id="ov-ga" style="z-index: 22">
+  <div class="sheet">
+    <div class="sheet-head"><h2 id="ga-title"></h2><button class="close">✕</button></div>
+    <div class="scroll" style="padding: 0 18px 22px">
+      <div class="hint" id="ga-text" style="text-align: left; font-size: 15px; padding: 0 0 12px"></div>
+      <div id="ga-opts" style="display: grid; gap: 10px"></div>
     </div>
   </div>
 </div>
@@ -589,7 +605,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 83;
+const APP_VERSION = 84;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -1611,6 +1627,11 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 84, date: '16 листопада', title: 'Акаунт Google ☁️', items: [
+    '☁️ Тепер акаунт можна прив’язати до Google: профіль → «Увійти через Google»',
+    '📱 Прогрес зберігається в хмарі: його можна відкрити з іншого телефону і він не загубиться, якщо очистити браузер',
+    '✅ Ваш поточний прогрес, речі та місце в рейтингу повністю зберігаються',
+  ]},
   { v: 83, date: '16 листопада', title: 'Вашу річ купили 💰', items: [
     '🏪 Коли хтось купує вашу річ на ринку, на екрані з’являється повідомлення: хто купив, що і за скільки',
     '📴 Якщо ви були не в мережі, повідомлення з’явиться, щойно ви зайдете в гру',
@@ -2305,6 +2326,106 @@ $('ls-chat').onclick = () => {
 $('mk-chats').onclick = chOpenList;
 setInterval(chLoadList, 20000);
 setTimeout(chLoadList, 2500);
+
+/* ---------- Акаунт Google (Firebase Authentication) ---------- */
+// Вставте сюди ключ вашого веб-додатку з Firebase: ⚙ Project settings → Your apps → apiKey
+const FB_CFG = { apiKey: 'AIzaSyBnJLhzFJ9H6MDGaVwJ4zUw93SPOoqy9Ro', authDomain: 'cliker-b17da.firebaseapp.com', projectId: 'cliker-b17da' };
+const GA = { user: null, auth: null, ready: false, syncing: false, synced: false, sig: '' };
+const GA_ON = !FB_CFG.apiKey.startsWith('__');
+const gaLoad = src => new Promise((ok, no) => { const el = document.createElement('script'); el.src = src; el.onload = ok; el.onerror = () => no(new Error('load')); document.head.appendChild(el); });
+const gaSkipGet = () => { try { return Number(localStorage.getItem('clicker_ga_skip')) || 0; } catch (e) { return 0; } };
+const gaSkipSet = () => { try { localStorage.setItem('clicker_ga_skip', String(Date.now())); } catch (e) {} };
+async function gaInit() {
+  if (!GA_ON || GA.ready) return;
+  try {
+    const v = '10.12.2';
+    await gaLoad(`https://www.gstatic.com/firebasejs/${v}/firebase-app-compat.js`);
+    await gaLoad(`https://www.gstatic.com/firebasejs/${v}/firebase-auth-compat.js`);
+    firebase.initializeApp(FB_CFG); GA.auth = firebase.auth(); GA.ready = true;
+    GA.auth.onAuthStateChanged(u => { GA.user = u || null; gaUI(); if (u) gaSync(); });
+  } catch (e) { GA.ready = false; gaUI(); }
+}
+function gaUI() {
+  const msg = $('ga-msg'), btn = $('ga-btn');
+  if (!GA_ON) { msg.textContent = 'Вхід через Google ще налаштовується.'; btn.style.display = 'none'; return; }
+  btn.style.display = '';
+  if (GA.user) { msg.textContent = `✅ Акаунт прив’язано: ${GA.user.email || 'Google'}. Прогрес зберігається в хмарі.`; btn.textContent = 'Вийти з акаунта'; }
+  else { msg.textContent = 'Увійдіть через Google, щоб зберегти прогрес у хмарі й відкрити його на іншому телефоні. Ваш поточний прогрес збережеться.'; btn.textContent = '🔐 Увійти через Google'; }
+}
+const ACC = g => `${LB_URL}/accounts/${encodeURIComponent(g)}.json`;
+async function gaPush(keep) {
+  const u = GA.user; if (!u) return false;
+  const tok = await u.getIdToken();
+  const body = { c: makeCode(), total: Math.floor(s.total), name: s.name || '', uid: s.uid, t: Date.now() };
+  const r = await fetch(`${ACC(u.uid)}?auth=${tok}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), keepalive: !!keep });
+  if (r.ok) GA.sig = gaSig();
+  return r.ok;
+}
+const gaSig = () => [s.owned.join(','), s.name, s.bizLvl, s.bizCap, s.mult, s.avatar, s.tag, s.stitle, Math.floor(s.total / 2000)].join('|');
+async function gaAdopt(cloud) {
+  const oldUid = s.uid;
+  applyCode(cloud.c);
+  if (oldUid && oldUid !== s.uid) fetch(`${LB_URL}/scores/${oldUid}.json`, { method: 'DELETE' }).catch(() => {});   // прибираємо порожній запис цього пристрою з рейтингу
+  GA.sig = gaSig(); save(); render();
+}
+function gaAsk(title, text, opts) {
+  return new Promise(res => {
+    $('ga-title').textContent = title; $('ga-text').textContent = text;
+    const box = $('ga-opts'); box.innerHTML = '';
+    opts.forEach(o => { const b = document.createElement('button'); b.className = 'sellbtn'; if (o.alt) b.style.cssText = 'background:#81c784;color:#0d3b17'; b.textContent = o.label; b.onclick = () => { $('ov-ga').classList.remove('open'); res(o.v); }; box.appendChild(b); });
+    $('ov-ga').classList.add('open');
+  });
+}
+async function gaSync() {
+  const u = GA.user; if (!u || GA.syncing) return;
+  GA.syncing = true;
+  try {
+    const tok = await u.getIdToken();
+    const r = await fetch(`${ACC(u.uid)}?auth=${tok}`);
+    if (!r.ok) throw new Error('read');
+    const cloud = await r.json();
+    const fresh = s.total < 1000 && !s.owned.length;
+    if (!cloud || typeof cloud.c !== 'string') {
+      if (await gaPush()) { GA.synced = true; showToast('✅ Акаунт Google прив’язано, прогрес збережено'); }
+      else showToast('⚠️ Не вдалося зберегти в хмару: перевірте правила Firebase');
+    } else if (cloud.uid === s.uid) {
+      if ((Number(cloud.total) || 0) > s.total) { await gaAdopt(cloud); showToast('☁️ Завантажено новіший прогрес з хмари'); } else await gaPush();
+      GA.synced = true;
+    } else if (fresh) {
+      await gaAdopt(cloud); GA.synced = true; showToast('☁️ Прогрес акаунта завантажено');
+    } else {
+      const choice = await gaAsk('Який прогрес залишити?',
+        `У хмарі цього акаунта: ${fmt(Number(cloud.total) || 0)} зароблено${cloud.name ? ' (нік ' + String(cloud.name).slice(0, 16) + ')' : ''}.\nНа цьому пристрої: ${fmt(s.total)} зароблено${s.name ? ' (нік ' + s.name + ')' : ''}.\nДругий варіант буде замінено.`,
+        [{ label: `☁️ Взяти з хмари (${fmt(Number(cloud.total) || 0)})`, v: 'cloud' }, { label: `📱 Залишити з цього пристрою (${fmt(s.total)})`, v: 'local', alt: true }]);
+      if (choice === 'cloud') { await gaAdopt(cloud); showToast('☁️ Прогрес з хмари завантажено'); }
+      else { await gaPush(); showToast('✅ Прогрес цього пристрою збережено в акаунті'); }
+      GA.synced = true;
+    }
+  } catch (e) { showToast('⚠️ Не вдалося синхронізувати акаунт. Перевірте інтернет та правила Firebase'); }
+  finally { GA.syncing = false; gaUI(); }
+}
+async function gaSignIn() {
+  if (!GA_ON) { showToast('Вхід через Google ще налаштовується'); return; }
+  if (!GA.ready) { await gaInit(); if (!GA.ready) { showToast('⚠️ Не вдалося завантажити вхід Google. Перевірте інтернет'); return; } }
+  try { await GA.auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+  catch (e) { if (e && e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') showToast('⚠️ Вхід не вдався: ' + (e.code || 'помилка')); }
+}
+$('ga-btn').onclick = async () => {
+  if (GA.user) { if (!confirm('Вийти з акаунта Google? Прогрес лишиться на цьому пристрої й у хмарі.')) return; await GA.auth.signOut(); GA.synced = false; showToast('Ви вийшли з акаунта'); }
+  else gaSignIn();
+};
+// Раз на добу пропонуємо прив'язати акаунт тим, хто ще не увійшов
+async function gaPrompt() {
+  if (!GA_ON || GA.user || Date.now() - gaSkipGet() < 864e5) return;
+  const fresh = s.total < 1000 && !s.owned.length;
+  const c = await gaAsk('☁️ Збережіть прогрес', fresh ? 'Вже є акаунт? Увійдіть через Google, і ваш прогрес повернеться. Нова гра теж зберігатиметься в хмарі.' : 'Прив’яжіть акаунт Google, щоб не втратити прогрес і відкривати його на іншому телефоні. Усе, що ви вже здобули, збережеться.',
+    [{ label: '🔐 Увійти через Google', v: 'go' }, { label: 'Пізніше', v: 'later', alt: true }]);
+  if (c === 'go') gaSignIn(); else gaSkipSet();
+}
+setInterval(() => { if (GA.user && GA.synced && !GA.syncing && gaSig() !== GA.sig) gaPush().catch(() => {}); }, 60000);
+document.addEventListener('visibilitychange', () => { if (document.hidden && GA.user && GA.synced && gaSig() !== GA.sig) gaPush(true).catch(() => {}); });
+gaUI();
+gaInit().then(() => setTimeout(() => { if (!GA.user) gaPrompt(); }, 2500));
 
 render();
 awayCheck();
