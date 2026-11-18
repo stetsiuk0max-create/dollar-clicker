@@ -376,7 +376,7 @@
 </div>
 
 <!-- Гараж -->
-<div class="overlay" id="ov-garage" style="z-index: 16">
+<div class="overlay" id="ov-garage" style="z-index: 26">
   <div class="sheet">
     <div class="sheet-head"><h2 id="gar-title"></h2><button class="close">✕</button></div>
     <div class="hint" id="gar-sub" style="padding: 0 18px 10px"></div>
@@ -436,7 +436,7 @@
 <!-- Повідомлення про продаж -->
 <div class="overlay" id="ov-sold" style="z-index: 20">
   <div class="sheet">
-    <div class="sheet-head"><h2>💰 Вашу річ купили!</h2></div>
+    <div class="sheet-head"><h2 id="sold-title">💰 Вашу річ купили!</h2></div>
     <div class="scroll" style="padding: 0 18px 22px">
       <div id="sold-list"></div>
       <button id="sold-ok" class="sellbtn" style="margin-top: 8px">Чудово 👍</button>
@@ -484,7 +484,7 @@
 </div>
 
 <!-- Промокод -->
-<div class="overlay" id="ov-item" style="z-index: 17">
+<div class="overlay" id="ov-item" style="z-index: 27">
   <div class="sheet">
     <div class="sheet-head"><h2 id="item-title"></h2><button class="close">✕</button></div>
     <div class="scroll" style="padding: 0 18px 22px; text-align: center">
@@ -559,7 +559,7 @@
 </div>
 
 <!-- Профіль гравця -->
-<div class="overlay" id="ov-player" style="z-index: 15">
+<div class="overlay" id="ov-player" style="z-index: 25">
   <div class="sheet">
     <div class="sheet-head"><h2>👤 Профіль гравця</h2><button class="close">✕</button></div>
     <div class="scroll">
@@ -604,7 +604,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 85;
+const APP_VERSION = 88;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -623,7 +623,7 @@ function cleanEmoji(str) {
 }
 const KEY = 'clicker_save_v2';
 const DEFAULT = { score: 1, total: 0, mult: 0 };
-let s = { ...DEFAULT, biz: 0, bizLvl: 0, bizCap: 0, pool: 0, stockGive: [], mktPend: null, mktOut: [], last: Date.now(), owned: [], avatar: '', g: { p: 0, w: 0, b: 0 }, pend: null, time: 0, clicks: 0, tag: '', stitle: '', redeemed: [], special: [], promoBonus: 0 };
+let s = { ...DEFAULT, biz: 0, bizLvl: 0, bizCap: 0, pool: 0, stockGive: [], mktPend: null, mktOut: [], last: Date.now(), owned: [], avatar: '', g: { p: 0, w: 0, b: 0 }, pend: null, time: 0, clicks: 0, tag: '', stitle: '', redeemed: [], special: [], promoBonus: 0, refEarned: 0 };
 try {
   const saved = JSON.parse(localStorage.getItem(KEY)) || {};
   s.score = saved.score ?? DEFAULT.score;
@@ -651,6 +651,7 @@ try {
   s.redeemed = Array.isArray(saved.redeemed) ? saved.redeemed.filter(Number.isFinite) : [];
   s.special = Array.isArray(saved.special) ? saved.special.filter(x => typeof x === 'string') : [];
   s.promoBonus = (Number.isFinite(saved.promoBonus) && saved.promoBonus >= 0) ? saved.promoBonus : 0;
+  s.refEarned = (Number.isFinite(saved.refEarned) && saved.refEarned >= 0) ? saved.refEarned : 0;
   if (saved.g && typeof saved.g === 'object') {
     const n = x => (Number.isFinite(x) && x >= 0) ? x : 0;
     s.g = { p: n(saved.g.p), w: n(saved.g.w), b: n(saved.g.b) };
@@ -1613,8 +1614,31 @@ function redeemPromo(raw) {
   save(); render();
   return { ok: true, msg: '✅ Промокод активовано! ' + parts.join(', ') };
 }
-function doPromo() {
-  const r = redeemPromo($('promo-input').value);
+// Промокод-ID: ввели ID гравця, і той, хто ввів, отримує self, а власник ID отримує owner
+const REFS = { '777888': { self: 100000, owner: 500000 } };
+let refBusy = false;
+async function redeemRef(key) {
+  const R = REFS[key], h = cyrb53('dc-promo-v1|REF-' + key), id = '#' + key;
+  if (s.redeemed.includes(h)) return { ok: false, msg: '⚠️ Ви вже використали цей промокод' };
+  if (accountId(s.name) === id) return { ok: false, msg: '❌ Власний промокод ввести не можна' };
+  if (refBusy) return { ok: false, msg: '⏳ Зачекайте…' };
+  refBusy = true;
+  try {
+    const r = await fetch(`${LB_URL}/scores.json`); if (!r.ok) throw new Error('lb');
+    const all = await r.json() || {};
+    const ownerUid = Object.keys(all).find(u => all[u] && accountId(all[u].name) === id);
+    if (!ownerUid) return { ok: false, msg: '❌ Такого промокоду не існує' };
+    if (ownerUid === s.uid) return { ok: false, msg: '❌ Власний промокод ввести не можна' };
+    const w = await fetch(`${LB_URL}/inbox/${encodeURIComponent(ownerUid)}.json`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ a: R.owner, i: '', n: s.name || 'Гравець', u: s.uid, t: Date.now(), k: 'promo' }) });
+    if (!w.ok) throw new Error('inbox');
+    s.redeemed.push(h); s.score += R.self; save(); render();
+    return { ok: true, msg: '✅ Промокод активовано! +' + fmt(R.self) };
+  } catch (e) { return { ok: false, msg: '⚠️ Немає зв’язку з сервером, спробуйте пізніше' }; }
+  finally { refBusy = false; }
+}
+async function doPromo() {
+  const raw = $('promo-input').value, rk = String(raw).trim().replace(/^#/, '');
+  const r = REFS[rk] ? await redeemRef(rk) : redeemPromo(raw);
   const m = $('promo-msg');
   m.textContent = r.msg;
   m.style.color = r.ok ? '#a5f3b0' : '#ffab91';
@@ -1626,6 +1650,11 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 87, date: '18 листопада', title: 'Дрібні покращення', items: [
+    '🎁 Додано новий промокод. Шукайте його 😉',
+    '🔔 Власник промокоду бачить на екрані, хто його ввів і скільки це принесло',
+    '👤 Торкніться імені гравця в сповіщенні про продаж чи промокод або в чаті, щоб відкрити його профіль',
+  ]},
   { v: 85, date: '17 листопада', title: 'Вхід тільки через Google ☁️', items: [
     '🔐 Тепер вхід у гру лише через акаунт Google, коди збереження прибрано',
     '☁️ Прогрес зберігається в хмарі автоматично',
@@ -1870,7 +1899,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) chec
 /* ---------- Код збереження ---------- */
 function makeCode() {
   creditPending();
-  const o = { v: 1, score: s.score, total: s.total, mult: s.mult, biz: s.biz, bizLvl: s.bizLvl, bizCap: s.bizCap, pool: s.pool, owned: s.owned, name: s.name, uid: s.uid, avatar: s.avatar, g: s.g, time: Math.floor(s.time), clicks: s.clicks, tag: s.tag, stitle: s.stitle, redeemed: s.redeemed, special: s.special, promoBonus: s.promoBonus };
+  const o = { v: 1, refEarned: s.refEarned, score: s.score, total: s.total, mult: s.mult, biz: s.biz, bizLvl: s.bizLvl, bizCap: s.bizCap, pool: s.pool, owned: s.owned, name: s.name, uid: s.uid, avatar: s.avatar, g: s.g, time: Math.floor(s.time), clicks: s.clicks, tag: s.tag, stitle: s.stitle, redeemed: s.redeemed, special: s.special, promoBonus: s.promoBonus };
   return 'DC1-' + btoa(unescape(encodeURIComponent(JSON.stringify(o))));
 }
 function applyCode(str) {
@@ -1894,6 +1923,7 @@ function applyCode(str) {
   s.redeemed = Array.isArray(o.redeemed) ? o.redeemed.filter(Number.isFinite) : [];
   s.special = Array.isArray(o.special) ? o.special.filter(x => TAGS.some(y => y.id === x && y.type === 'special')) : [];
   s.promoBonus = (Number.isFinite(o.promoBonus) && o.promoBonus >= 0) ? o.promoBonus : 0;
+  s.refEarned = (Number.isFinite(o.refEarned) && o.refEarned >= 0) ? o.refEarned : 0;
   s.clicks = (Number.isFinite(o.clicks) && o.clicks >= 0) ? Math.floor(o.clicks) : 0;
   s.time = (Number.isFinite(o.time) && o.time >= 0) ? o.time : 0;
   s.tag = typeof o.tag === 'string' ? o.tag : '';
@@ -2033,15 +2063,16 @@ function mkShowListing(l) {
   $('ov-listing').classList.add('open');
 }
 // Профіль продавця (беремо його запис з рейтингу)
-$('ls-seller').onclick = async () => {
-  const l = mkOpen; if (!l || !l.u) return;
+async function openPlayerByUid(uid) {
+  if (!uid) return;
   try {
-    const r = await fetch(`${LB_URL}/scores/${encodeURIComponent(l.u)}.json`);
+    const r = await fetch(`${LB_URL}/scores/${encodeURIComponent(uid)}.json`);
     const v = r.ok ? await r.json() : null;
-    if (!v || typeof v !== 'object') { showToast('Профіль продавця поки недоступний'); return; }
+    if (!v || typeof v !== 'object') { showToast('Профіль гравця поки недоступний'); return; }
     showPlayer(v, 0);
   } catch (e) { showToast('⚠️ Немає зв’язку з сервером'); }
-};
+}
+$('ls-seller').onclick = () => { const l = mkOpen; if (l) openPlayerByUid(l.u); };
 $('ls-act').onclick = () => { const l = mkOpen; if (!l) return; if (l.u === s.uid) mkCancel(l); else mkBuy(l); };
 
 // Займаємо оголошення: запис /sold/{id} можна створити лише раз, тож двоє людей не купять одне й те саме
@@ -2072,7 +2103,7 @@ function mkFinish() {
     if (p.k === 'buy') {
       s.score = Math.max(0, s.score - p.p);
       s.owned.push(it.id);
-      if (p.u) s.mktOut.push({ m: 'POST', url: `${LB_URL}/inbox/${p.u}.json`, b: { a: p.p, i: p.i, n: s.name, t: Date.now(), r: p.v >= 2 ? 1 : 0 } });
+      if (p.u) s.mktOut.push({ m: 'POST', url: `${LB_URL}/inbox/${p.u}.json`, b: { a: p.p, i: p.i, n: s.name, u: s.uid, t: Date.now(), r: p.v >= 2 ? 1 : 0 } });
       showToast('✅ Куплено: ' + it.name); vibrate([30, 40, 60]);
     } else { if (p.v < 2) s.owned.push(it.id); showToast('↩️ Знято з продажу: ' + it.name); }
   }
@@ -2118,17 +2149,32 @@ async function mkReconcile() {
   } catch (e) {}
 }
 // Велике повідомлення на екрані, коли вашу річ купили
-function soldNotice(it, buyer, amount) {
+function promoNotice(who, amount, totalEarned, uid) {
+  const list = $('sold-list'); soldNotice.kinds.add('promo');
+  const row = document.createElement('div'); row.className = 'chrow'; row.style.cursor = 'default';
+  const ci = document.createElement('div'); ci.className = 'ci'; ci.textContent = '🎁';
+  const cb = document.createElement('div'); cb.className = 'cb';
+  const b = document.createElement('b'); b.textContent = `${who} ввів ваш ID як промокод` + (uid ? ' ›' : '');
+  if (uid) { row.style.cursor = 'pointer'; row.onclick = () => openPlayerByUid(uid); }
+  const sm = document.createElement('small'); sm.style.whiteSpace = 'normal'; sm.textContent = `Ви отримали ${fmt(amount)}. Усього з промокоду заробили: ${fmt(totalEarned)}`;
+  cb.append(b, sm); row.append(ci, cb); list.appendChild(row);
+  soldTitle(); $('ov-sold').classList.add('open');
+}
+function soldTitle() { const k = soldNotice.kinds; $('sold-title').textContent = k.size > 1 ? '💰 Нові надходження' : k.has('promo') ? '🎁 Вам нарахували бонус!' : '💰 Вашу річ купили!'; }
+function soldNotice(it, buyer, amount, uid) {
+  soldNotice.kinds.add('sale');
   const list = $('sold-list');
   const row = document.createElement('div'); row.className = 'chrow'; row.style.cursor = 'default';
   const ci = document.createElement('div'); ci.className = 'ci'; if (it) setIcon(ci, it, true); else ci.textContent = '💰';
   const cb = document.createElement('div'); cb.className = 'cb';
-  const b = document.createElement('b'); b.textContent = `${buyer} купив «${it ? it.name : 'річ'}»`;
+  const b = document.createElement('b'); b.textContent = `${buyer} купив «${it ? it.name : 'річ'}»` + (uid ? ' ›' : '');
+  if (uid) { row.style.cursor = 'pointer'; row.onclick = () => openPlayerByUid(uid); }
   const sm = document.createElement('small'); sm.style.whiteSpace = 'normal'; sm.textContent = `Ви отримали ${fmt(amount)}`;
   cb.append(b, sm); row.append(ci, cb); list.appendChild(row);
-  $('ov-sold').classList.add('open');
+  soldTitle(); $('ov-sold').classList.add('open');
 }
-$('sold-ok').onclick = () => { $('ov-sold').classList.remove('open'); $('sold-list').innerHTML = ''; };
+soldNotice.kinds = new Set();
+$('sold-ok').onclick = () => { $('ov-sold').classList.remove('open'); $('sold-list').innerHTML = ''; soldNotice.kinds.clear(); };
 // Гроші за продані речі
 async function inboxPoll() {
   try {
@@ -2139,7 +2185,9 @@ async function inboxPoll() {
       if (!d.ok || !v || !Number.isFinite(v.a) || v.a <= 0 || v.a > MK_PRICE_MAX) continue;
       const it = mkItem(v.i);
       s.score += v.a; if (v.r) dropOne(v.i); save(); render();
-      soldNotice(it, String(v.n || 'Гравець').slice(0, 30), v.a); vibrate([30, 40, 60]);
+      if (v.k === 'promo') { s.refEarned += v.a; save(); promoNotice(String(v.n || 'Гравець').slice(0, 30), v.a, s.refEarned, String(v.u || '')); }
+      else soldNotice(it, String(v.n || 'Гравець').slice(0, 30), v.a, String(v.u || ''));
+      vibrate([30, 40, 60]);
     }
   } catch (e) {}
 }
@@ -2240,7 +2288,7 @@ function chOpenList() { chRender(); $('ov-chats').classList.add('open'); chLoadL
 function openChat(info) {
   chCur = info; chLast = '';
   const it = mkItem(info.i);
-  $('ch-title').textContent = '💬 ' + info.w;
+  $('ch-title').textContent = '💬 ' + info.w + ' ›';
   const box = $('ch-item'); box.innerHTML = '';
   const lst = mkList.find(l => l.id === info.lid), price = info.p || (lst && lst.p);
   if (it) {
@@ -2294,6 +2342,8 @@ async function chSend() {
   finally { chSending = false; }
 }
 $('ch-send').onclick = chSend;
+$('ch-title').style.cursor = 'pointer';
+$('ch-title').onclick = () => { if (chCur) openPlayerByUid(chCur.wu); };
 $('ch-input').addEventListener('keydown', e => { if (e.key === 'Enter') chSend(); });
 $('ch-del').onclick = async () => {
   const cur = chCur; if (!cur) return;
@@ -2406,6 +2456,7 @@ $('ga-btn').onclick = async () => {
   if (GA.user) { if (!confirm('Вийти з акаунта Google? Прогрес лишиться на цьому пристрої й у хмарі.')) return; await GA.auth.signOut(); GA.synced = false; showToast('Ви вийшли з акаунта'); }
   else gaSignIn();
 };
+setInterval(inboxPoll, 10000);   // швидше помічаємо продажі та промокоди
 setInterval(() => { if (GA.user && GA.synced && !GA.syncing && gaSig() !== GA.sig) gaPush().catch(() => {}); }, 60000);
 document.addEventListener('visibilitychange', () => { if (document.hidden && GA.user && GA.synced && gaSig() !== GA.sig) gaPush(true).catch(() => {}); });
 gaUI();
