@@ -450,6 +450,7 @@
   <h2 style="margin: 0; font-size: 26px">Dollar Clicker</h2>
   <div class="hint" id="gate-text" style="font-size: 16px; max-width: 320px">Щоб грати, увійдіть через акаунт Google. Ваш прогрес зберігається в хмарі, а якщо ви вже грали, він повернеться.</div>
   <button id="gate-btn" class="sellbtn" style="max-width: 320px; width: 100%">🔐 Увійти через Google</button>
+  <button id="gate-copy" class="sellbtn" style="max-width: 320px; width: 100%; background: #81c784; color: #0d3b17; display: none">📋 Скопіювати посилання на гру</button>
 </div>
 
 <!-- Акаунт Google -->
@@ -604,7 +605,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 88;
+const APP_VERSION = 89;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -1650,6 +1651,9 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 89, date: '18 листопада', title: 'Вхід на iPhone', items: [
+    '📱 Покращено вхід через Google на iPhone і підказки, якщо гру відкрито у вбудованому браузері (Telegram, Instagram)',
+  ]},
   { v: 87, date: '18 листопада', title: 'Дрібні покращення', items: [
     '🎁 Додано новий промокод. Шукайте його 😉',
     '🔔 Власник промокоду бачить на екрані, хто його ввів і скільки це принесло',
@@ -2367,6 +2371,20 @@ setTimeout(chLoadList, 2500);
 const FB_CFG = { apiKey: 'AIzaSyBnJLhzFJ9H6MDGaVwJ4zUw93SPOoqy9Ro', authDomain: 'cliker-b17da.firebaseapp.com', projectId: 'cliker-b17da' };
 const GA = { user: null, auth: null, ready: false, syncing: false, synced: false, sig: '' };
 const GA_ON = !FB_CFG.apiKey.startsWith('__');
+const UA = navigator.userAgent || '';
+const IOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const STANDALONE = navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+// Вбудовані браузери (Telegram, Instagram, Facebook...): Google забороняє там вхід
+const IN_APP = /FBAN|FBAV|FB_IAB|Instagram|Telegram|Line\/|MicroMessenger|TikTok|Snapchat|GSA\/|Twitter|LinkedInApp/i.test(UA) || (IOS && !STANDALONE && !/Safari\//.test(UA) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(UA));
+const ERR_HELP = {
+  'auth/unauthorized-domain': 'Цей сайт не дозволено в Firebase. Напишіть розробнику.',
+  'auth/network-request-failed': 'Немає зв’язку з інтернетом.',
+  'auth/popup-blocked': 'Браузер заблокував вікно входу.',
+  'auth/popup-closed-by-user': 'Вікно входу закрилося до завершення.',
+  'auth/operation-not-supported-in-this-environment': 'Цей браузер не підтримує такий вхід.',
+  'auth/web-storage-unsupported': 'Браузер блокує збереження даних (вимкніть приватний режим).',
+};
+const gaErrSet = c => { GA.err = c || ''; gateUpdate(); };
 const gaLoad = src => new Promise((ok, no) => { const el = document.createElement('script'); el.src = src; el.onload = ok; el.onerror = () => no(new Error('load')); document.head.appendChild(el); });
 async function gaInit() {
   if (!GA_ON || GA.ready) return;
@@ -2375,6 +2393,7 @@ async function gaInit() {
     await gaLoad(`https://www.gstatic.com/firebasejs/${v}/firebase-app-compat.js`);
     await gaLoad(`https://www.gstatic.com/firebasejs/${v}/firebase-auth-compat.js`);
     firebase.initializeApp(FB_CFG); GA.auth = firebase.auth(); GA.ready = true;
+    if (GA.auth.getRedirectResult) GA.auth.getRedirectResult().catch(e => { gaErrSet(e && e.code || 'redirect'); });
     GA.auth.onAuthStateChanged(u => { GA.user = u || null; GA.resolved = true; if (u) { try { localStorage.setItem('clicker_linked', '1'); } catch (e) {} } gaUI(); gateUpdate(); if (u) gaSync(); });
   } catch (e) { GA.ready = false; GA.failed = true; gaUI(); gateUpdate(); }
 }
@@ -2384,8 +2403,14 @@ function gateUpdate() {
   if (!GA_ON) return;
   const need = !GA.user && ((GA.resolved) || (GA.failed && !wasLinked()));
   $('gate').style.display = need ? 'flex' : 'none';
-  $('gate-text').textContent = GA.failed && !GA.resolved ? 'Не вдалося завантажити вхід Google. Перевірте інтернет і спробуйте ще раз.' : 'Щоб грати, увійдіть через акаунт Google. Ваш прогрес зберігається в хмарі, а якщо ви вже грали, він повернеться.';
+  let t = GA.failed && !GA.resolved ? 'Не вдалося завантажити вхід Google. Перевірте інтернет і спробуйте ще раз.' : 'Щоб грати, увійдіть через акаунт Google. Ваш прогрес зберігається в хмарі, а якщо ви вже грали, він повернеться.';
+  if (IN_APP) t = 'Google не дозволяє вхід у вбудованому браузері (Telegram, Instagram тощо). Скопіюйте посилання й відкрийте його в Safari або Chrome.';
+  else if (IOS && STANDALONE) t += '\n\nЯкщо вхід не відкривається: видаліть іконку з головного екрана, відкрийте гру в Safari й додайте її знову після входу.';
+  if (GA.err) t += `\n\n⚠️ ${ERR_HELP[GA.err] || 'Помилка входу'} (${GA.err})`;
+  $('gate-text').style.whiteSpace = 'pre-line'; $('gate-text').textContent = t;
+  $('gate-copy').style.display = IN_APP ? '' : 'none';
 }
+$('gate-copy').onclick = () => copyText(location.href.split('#')[0]).then(ok => showToast(ok ? '📋 Посилання скопійовано, відкрийте його в Safari або Chrome' : 'Не вдалося скопіювати'));
 $('gate-btn').onclick = () => { GA.failed = false; gaSignIn().then(gateUpdate); };
 function gaUI() {
   const msg = $('ga-msg'), btn = $('ga-btn');
@@ -2448,9 +2473,20 @@ async function gaSync() {
 }
 async function gaSignIn() {
   if (!GA_ON) { showToast('Вхід через Google ще налаштовується'); return; }
-  if (!GA.ready) { await gaInit(); if (!GA.ready) { showToast('⚠️ Не вдалося завантажити вхід Google. Перевірте інтернет'); return; } }
-  try { await GA.auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
-  catch (e) { if (e && e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') showToast('⚠️ Вхід не вдався: ' + (e.code || 'помилка')); }
+  gaErrSet('');
+  if (!GA.ready) { gaInit(); showToast('⏳ Завантажуємо вхід Google… натисніть ще раз'); return; }
+  const prov = new firebase.auth.GoogleAuthProvider(); prov.setCustomParameters({ prompt: 'select_account' });
+  try {
+    // Викликаємо одразу в обробнику дотику, щоб Safari не заблокував вікно
+    await GA.auth.signInWithPopup(prov);
+  } catch (e) {
+    const c = (e && e.code) || String(e);
+    GA.fails = (GA.fails || 0) + 1;
+    const canRedirect = c === 'auth/popup-blocked' || c === 'auth/operation-not-supported-in-this-environment' || (IOS && GA.fails >= 2);
+    if (canRedirect) { try { await GA.auth.signInWithRedirect(prov); return; } catch (e2) { gaErrSet((e2 && e2.code) || c); return; } }
+    if (c === 'auth/cancelled-popup-request') return;
+    gaErrSet(c); showToast('⚠️ Вхід не вдався: ' + c);
+  }
 }
 $('ga-btn').onclick = async () => {
   if (GA.user) { if (!confirm('Вийти з акаунта Google? Прогрес лишиться на цьому пристрої й у хмарі.')) return; await GA.auth.signOut(); GA.synced = false; showToast('Ви вийшли з акаунта'); }
