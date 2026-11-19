@@ -144,6 +144,16 @@
   .chitem b { display: block; font-size: 15px; }
   .chitem .cp { display: block; font-size: 18px; font-weight: 800; color: #ffd54f; }
   .chitem .cn { display: block; font-size: 11px; opacity: .7; }
+  .trgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 4px 0; }
+  .trgrid button { position: relative; border: 2px solid transparent; border-radius: 12px; background: #1f4a30; color: #fff; padding: 6px 2px; font-family: inherit; font-size: 11px; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .trgrid button.on { border-color: #ffd54f; background: #2d6a43; }
+  .trgrid .ci { width: 54px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  .trgrid .ci .pic { width: 54px; height: 40px; object-fit: contain; }
+  .trgrid .q { position: absolute; top: 2px; right: 4px; color: #ffd54f; font-size: 12px; }
+  .frbtn { border: none; border-radius: 10px; padding: 9px 11px; background: #ffd54f; color: #3e2f00; font-size: 15px; font-weight: 800; flex: none; }
+  .frbtn.no { background: #7a2e2e; color: #fff; }
+  #pl-actions { display: flex; gap: 8px; padding: 0 14px 10px; flex-wrap: wrap; }
+  #pl-actions .frbtn { flex: 1; font-size: 14px; }
   .chrow { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: #1f4a30; border: none; border-radius: 14px; padding: 10px 12px; color: #fff; font-family: inherit; margin-bottom: 8px; }
   .chrow .ci { width: 54px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex: none; }
   .chrow .ci .pic { width: 54px; height: 40px; object-fit: contain; }
@@ -393,6 +403,7 @@
     <div class="sheet-head"><h2>🏪 Ринок</h2><button class="close">✕</button></div>
     <div class="mk-top">
       <div class="mk-row"><button id="mk-add" class="sellbtn">➕ Додати оголошення</button><button id="mk-chats" class="sellbtn">💬 Чати</button></div>
+      <div class="mk-row"><button id="mk-friends" class="sellbtn">👥 Друзі</button></div>
       <div class="mk-tabs"><button id="mk-all" class="on">🛍️ Усі оголошення</button><button id="mk-mine">📋 Мої оголошення</button></div>
     </div>
     <div class="mk-chips" id="mk-chips"></div>
@@ -571,6 +582,7 @@
         <div class="ptitle" id="pl-title"></div>
         <div class="hint" id="pl-rank"></div>
       </div>
+      <div id="pl-actions" style="display:none"></div>
       <div class="stats">
         <div class="stat"><small>Усього зароблено</small><b id="pl-total"></b></div>
         <div class="stat"><small>Баланс зараз</small><b id="pl-bal"></b></div>
@@ -586,10 +598,45 @@
   </div>
 </div>
 
+<!-- Друзі -->
+<div class="overlay" id="ov-friends" style="z-index: 12">
+  <div class="sheet" style="height: 85%">
+    <div class="sheet-head"><h2>👥 Друзі</h2><button class="close">✕</button></div>
+    <div class="tabs" style="grid-template-columns: 1fr 1fr 1fr">
+      <button class="tab active" id="fr-t1">👥 Друзі</button><button class="tab" id="fr-t2">📩 Запити</button><button class="tab" id="fr-t3">🤝 Угоди</button>
+    </div>
+    <div class="nick" id="fr-add" style="display: flex">
+      <input id="fr-id" maxlength="20" placeholder="ID (#123456) або нікнейм" autocomplete="off">
+      <button id="fr-addbtn">➕</button>
+    </div>
+    <div class="scroll" style="padding: 0 14px 22px; flex: 1; min-height: 0">
+      <div id="fr-note" class="hint" style="padding: 4px 0 10px"></div>
+      <div id="fr-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ov-trade" style="z-index: 16">
+  <div class="sheet" style="height: 92%">
+    <div class="sheet-head"><h2 id="tr-title" style="font-size: 20px">🤝 Угода</h2><button class="close">✕</button></div>
+    <div class="scroll" style="padding: 0 14px 22px; flex: 1; min-height: 0">
+      <div class="coll-h">Ви віддаєте (торкніться речі)</div>
+      <div id="tr-mine" class="trgrid"></div>
+      <div class="nick" style="padding: 6px 0"><input id="tr-gc" inputmode="numeric" placeholder="+ гроші, які віддаєте" autocomplete="off"></div>
+      <div class="coll-h">Ви просите</div>
+      <div id="tr-their" class="trgrid"></div>
+      <div class="nick" style="padding: 6px 0"><input id="tr-tc" inputmode="numeric" placeholder="+ гроші, які просите" autocomplete="off"></div>
+      <div class="hint" id="tr-sum" style="padding: 4px 0 10px"></div>
+      <button id="tr-send" class="sellbtn">📨 Запропонувати</button>
+      <div class="hint" style="padding: 8px 0">Ваші речі й гроші з пропозиції резервуються, доки друг не відповість. Скасувати можна у вкладці «Угоди».</div>
+    </div>
+  </div>
+</div>
+
 <!-- Лідери -->
 <div class="overlay" id="ov-lb">
   <div class="sheet">
-    <div class="sheet-head"><h2>🏆 Лідери</h2><button class="close">✕</button></div>
+    <div class="sheet-head"><h2>🏆 Лідери</h2><button id="lb-friends" class="close" style="width:auto;padding:0 12px;font-size:15px">👥 Друзі</button><button class="close">✕</button></div>
     <div class="nick">
       <input id="nick" maxlength="16" placeholder="Ваш нікнейм" autocomplete="off">
       <button id="nick-save">OK</button>
@@ -605,7 +652,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 89;
+const APP_VERSION = 90;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -1359,6 +1406,7 @@ function showPlayer(v, rank) {
   const hasList = v.owned !== undefined;
   const owned = ownedList(v.owned);
   const count = playerCount(v);
+  plUid = String(v.id || ''); plName = String(v.name || '').slice(0, 16); plActions();
   $('pl-name').textContent = String(v.name || '?').slice(0, 16);
   $('pl-acc').textContent = v.name ? 'ID: ' + accountId(v.name) : '';
   const tg = renderTitle($('pl-title'), typeof v.tag === 'string' ? v.tag : '', typeof v.stag === 'string' ? v.stag : '', '');
@@ -1651,6 +1699,11 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 90, date: '19 листопада', title: 'Друзі та угоди', items: [
+    '👥 Друзі: додавайте гравців за ID чи нікнеймом або з їхнього профілю (кнопки у 🏆 Лідерах та 🏪 Ринку)',
+    '💬 Пишіть друзям особисті повідомлення',
+    '🤝 Угоди: пропонуйте другу обмін речами, продаж чи купівлю за гроші. Ваші речі й гроші резервуються до відповіді',
+  ]},
   { v: 89, date: '18 листопада', title: 'Вхід на iPhone', items: [
     '📱 Покращено вхід через Google на iPhone і підказки, якщо гру відкрито у вбудованому браузері (Telegram, Instagram)',
   ]},
@@ -2073,7 +2126,7 @@ async function openPlayerByUid(uid) {
     const r = await fetch(`${LB_URL}/scores/${encodeURIComponent(uid)}.json`);
     const v = r.ok ? await r.json() : null;
     if (!v || typeof v !== 'object') { showToast('Профіль гравця поки недоступний'); return; }
-    showPlayer(v, 0);
+    v.id = uid; showPlayer(v, 0);
   } catch (e) { showToast('⚠️ Немає зв’язку з сервером'); }
 }
 $('ls-seller').onclick = () => { const l = mkOpen; if (l) openPlayerByUid(l.u); };
@@ -2164,7 +2217,7 @@ function promoNotice(who, amount, totalEarned, uid) {
   cb.append(b, sm); row.append(ci, cb); list.appendChild(row);
   soldTitle(); $('ov-sold').classList.add('open');
 }
-function soldTitle() { const k = soldNotice.kinds; $('sold-title').textContent = k.size > 1 ? '💰 Нові надходження' : k.has('promo') ? '🎁 Вам нарахували бонус!' : '💰 Вашу річ купили!'; }
+function soldTitle() { const k = soldNotice.kinds; $('sold-title').textContent = k.size > 1 ? '💰 Нові надходження' : k.has('trade') ? '🤝 Результат угоди' : k.has('promo') ? '🎁 Вам нарахували бонус!' : '💰 Вашу річ купили!'; }
 function soldNotice(it, buyer, amount, uid) {
   soldNotice.kinds.add('sale');
   const list = $('sold-list');
@@ -2186,6 +2239,9 @@ async function inboxPoll() {
     const all = await r.json(); if (!all || typeof all !== 'object') return;
     for (const [k, v] of Object.entries(all)) {
       const d = await fetch(`${LB_URL}/inbox/${s.uid}/${k}.json`, { method: 'DELETE' });
+      if (d.ok && v && v.k === 'trade') {
+        const ids = trIds(v.it), cash = trNum(v.a); ids.forEach(i => s.owned.push(i)); s.score += cash; save(); render(); tradeNotice(v); vibrate([30, 40, 60]); continue;
+      }
       if (!d.ok || !v || !Number.isFinite(v.a) || v.a <= 0 || v.a > MK_PRICE_MAX) continue;
       const it = mkItem(v.i);
       s.score += v.a; if (v.r) dropOne(v.i); save(); render();
@@ -2428,6 +2484,222 @@ async function gaPush(keep) {
   if (r.ok) GA.sig = gaSig();
   return r.ok;
 }
+// ===== Друзі, повідомлення, угоди =====
+const FR = `${LB_URL}/friends`, FQ = `${LB_URL}/friendreq`, TR = `${LB_URL}/usertrades`, TC = `${LB_URL}/tradeclaim`;
+let frList = {}, frIn = {}, frTr = {}, frTab = 1, plUid = '', plName = '';
+const frKey = u => 'd_' + [s.uid, u].sort().join('_');
+const frCnt = () => Object.keys(frIn).length + Object.values(frTr).filter(t => !t.o).length;
+const jget = async u => { const r = await fetch(u); if (!r.ok) throw new Error('get'); return (await r.json()) || {}; };
+async function frLoad() {
+  try {
+    [frList, frIn, frTr] = await Promise.all([jget(`${FR}/${s.uid}.json`), jget(`${FQ}/${s.uid}.json`), jget(`${TR}/${s.uid}.json`)]);
+    Object.keys(frTr).forEach(k => { if (!frTr[k] || typeof frTr[k] !== 'object') delete frTr[k]; });
+    frBadge(); if ($('ov-friends').classList.contains('open')) frRender();
+  } catch (e) {}
+}
+function frBadge() {
+  const n = frCnt();
+  $('mk-friends').textContent = '👥 Друзі' + (n ? ` (${n})` : '');
+  showDot($('dot-chat'), chUnread + n);
+  $('fr-t2').textContent = '📩 Запити' + (Object.keys(frIn).length ? ` (${Object.keys(frIn).length})` : '');
+  $('fr-t3').textContent = '🤝 Угоди' + (Object.values(frTr).filter(t => !t.o).length ? ` (${Object.values(frTr).filter(t => !t.o).length})` : '');
+}
+const _chBadge = chBadge;
+chBadge = function () { _chBadge(); showDot($('dot-chat'), chUnread + frCnt()); };
+function frOpen(tab) { frTab = tab || 1; $('ov-friends').classList.add('open'); frRender(); frLoad(); }
+function frRender() {
+  [1, 2, 3].forEach(i => $('fr-t' + i).classList.toggle('active', frTab === i));
+  $('fr-add').style.display = frTab === 1 ? 'flex' : 'none';
+  const box = $('fr-list'); box.innerHTML = '';
+  const row = (icon, title, sub, btns, onclick) => {
+    const r = document.createElement('div'); r.className = 'chrow'; r.style.cursor = onclick ? 'pointer' : 'default';
+    const ci = document.createElement('div'); ci.className = 'ci'; ci.textContent = icon;
+    const cb = document.createElement('div'); cb.className = 'cb';
+    const b = document.createElement('b'); b.textContent = title; cb.appendChild(b);
+    if (sub) { const sm = document.createElement('small'); sm.style.whiteSpace = 'pre-line'; sm.textContent = sub; cb.appendChild(sm); }
+    r.append(ci, cb);
+    btns.forEach(([t, cls, fn]) => { const x = document.createElement('button'); x.className = 'frbtn ' + cls; x.textContent = t; x.onclick = e => { e.stopPropagation(); fn(); }; r.appendChild(x); });
+    if (onclick) r.onclick = onclick; box.appendChild(r);
+  };
+  if (frTab === 1) {
+    const L = Object.entries(frList).filter(([k, v]) => v && typeof v === 'object');
+    $('fr-note').textContent = L.length ? '' : 'Друзів поки немає. Додайте за ID чи нікнеймом, або з профілю гравця (🏆 Лідери).';
+    L.forEach(([u, v]) => { const n = String(v.n || 'Гравець').slice(0, 20);
+      row('🙂', n, '', [['💬', '', () => frChat(u, n)], ['🤝', '', () => trOpen(u, n)]], () => openPlayerByUid(u)); });
+  } else if (frTab === 2) {
+    const L = Object.entries(frIn);
+    $('fr-note').textContent = L.length ? '' : 'Нових запитів немає.';
+    L.forEach(([u, v]) => { const n = String((v && v.n) || 'Гравець').slice(0, 20);
+      row('📩', n, 'хоче додати вас у друзі', [['✓', '', () => frAccept(u, n)], ['✕', 'no', () => frDecline(u)]], () => openPlayerByUid(u)); });
+  } else {
+    const L = Object.entries(frTr).sort((a, b) => (b[1].t || 0) - (a[1].t || 0));
+    $('fr-note').textContent = L.length ? '' : 'Угод поки немає. Відкрийте друга й натисніть 🤝.';
+    L.forEach(([id, t]) => { const x = trClean(t); if (!x) return;
+      const out = !!t.o, who = String(out ? t.tn : t.fn || 'Гравець').slice(0, 20);
+      row(out ? '📤' : '📥', (out ? 'Ви → ' : '') + who + (out ? '' : ' пропонує'), trText(x, out), out ? [['Скасувати', 'no', () => trCancel(id, x)]] : [['✓', '', () => trAccept(id, x)], ['✕', 'no', () => trDecline(id, x)]]); });
+  }
+}
+$('fr-t1').onclick = () => { frTab = 1; frRender(); }; $('fr-t2').onclick = () => { frTab = 2; frRender(); }; $('fr-t3').onclick = () => { frTab = 3; frRender(); };
+$('mk-friends').onclick = () => frOpen(1);
+$('lb-friends').onclick = () => frOpen(1);
+function frChat(u, n) { openChat({ key: frKey(u), lid: '', i: '', wu: u, w: n, p: 0 }); }
+async function frAdd(u, n) {
+  if (!u || u === s.uid) return;
+  if (frList[u]) { showToast('Ви вже друзі'); return; }
+  try {
+    if (frIn[u]) { await frAccept(u, n); return; }
+    const r = await fetch(`${FQ}/${u}/${s.uid}.json`, { method: 'PUT', headers: MK_HDR, body: JSON.stringify({ n: s.name || 'Гравець', t: Date.now() }) });
+    if (!r.ok) throw new Error('fq');
+    showToast('📨 Запит надіслано: ' + n); plActions();
+  } catch (e) { showToast('⚠️ Не вдалося: перевірте інтернет та правила Firebase'); }
+}
+async function frAccept(u, n) {
+  try {
+    const t = Date.now();
+    const rs = await Promise.all([
+      fetch(`${FR}/${s.uid}/${u}.json`, { method: 'PUT', headers: MK_HDR, body: JSON.stringify({ n, t }) }),
+      fetch(`${FR}/${u}/${s.uid}.json`, { method: 'PUT', headers: MK_HDR, body: JSON.stringify({ n: s.name || 'Гравець', t }) }),
+      fetch(`${FQ}/${s.uid}/${u}.json`, { method: 'DELETE' }),
+    ]);
+    if (!rs[0].ok || !rs[1].ok) throw new Error('fr');
+    delete frIn[u]; frList[u] = { n, t }; showToast('🤝 Тепер ви друзі: ' + n); frBadge(); frRender(); plActions();
+  } catch (e) { showToast('⚠️ Не вдалося: перевірте інтернет та правила Firebase'); }
+}
+async function frDecline(u) { try { await fetch(`${FQ}/${s.uid}/${u}.json`, { method: 'DELETE' }); delete frIn[u]; frBadge(); frRender(); } catch (e) {} }
+async function frRemove(u) {
+  if (!confirm('Видалити з друзів?')) return;
+  try { await Promise.all([`${FR}/${s.uid}/${u}.json`, `${FR}/${u}/${s.uid}.json`].map(x => fetch(x, { method: 'DELETE' }))); delete frList[u]; showToast('Видалено з друзів'); frRender(); plActions(); } catch (e) {}
+}
+$('fr-addbtn').onclick = async () => {
+  let q = $('fr-id').value.trim(); if (!q) return;
+  if (/^\d{4,}$/.test(q)) q = '#' + q;
+  try {
+    const all = await jget(`${LB_URL}/scores.json`); const ql = q.toLowerCase();
+    const hit = Object.entries(all).find(([u, v]) => v && v.name && (accountId(v.name).toLowerCase() === ql || String(v.name).toLowerCase() === ql));
+    if (!hit) { showToast('Гравця не знайдено'); return; }
+    if (hit[0] === s.uid) { showToast('Це ви 🙂'); return; }
+    $('fr-id').value = ''; frAdd(hit[0], String(hit[1].name).slice(0, 20));
+  } catch (e) { showToast('⚠️ Немає зв’язку з сервером'); }
+};
+// кнопки в профілі гравця
+async function plActions() {
+  const box = $('pl-actions'); if (!box) return; box.innerHTML = '';
+  const u = plUid; if (!u || u === s.uid) { box.style.display = 'none'; return; }
+  box.style.display = 'flex';
+  const mk = (t, cls, fn) => { const b = document.createElement('button'); b.className = 'frbtn ' + cls; b.textContent = t; b.onclick = fn; box.appendChild(b); };
+  const n = plName || 'Гравець';
+  if (frList[u]) { mk('💬 Написати', '', () => frChat(u, n)); mk('🤝 Угода', '', () => trOpen(u, n)); mk('✕ З друзів', 'no', () => frRemove(u)); return; }
+  if (frIn[u]) { mk('✓ Прийняти запит', '', () => frAccept(u, n)); return; }
+  mk('➕ Додати в друзі', '', () => frAdd(u, n));
+  try { const r = await fetch(`${FQ}/${u}/${s.uid}.json`); if (r.ok && await r.json() && plUid === u) { box.innerHTML = ''; mk('⏳ Запит надіслано', 'no', () => {}); } } catch (e) {}
+}
+// ----- угоди -----
+const trNum = x => { x = Math.floor(Number(x)); return Number.isFinite(x) && x > 0 ? Math.min(x, Number.MAX_SAFE_INTEGER) : 0; };
+const trIds = a => (Array.isArray(a) ? a : (a && typeof a === 'object' ? Object.values(a) : [])).filter(id => typeof id === 'string' && SHOP.some(i => i.id === id)).slice(0, 12);
+function trClean(t) {
+  if (!t || typeof t !== 'object') return null;
+  const x = { gi: trIds(t.gi), gc: trNum(t.gc), ti: trIds(t.ti), tc: trNum(t.tc), f: String(t.f || ''), to: String(t.to || ''), t: t.t || 0 };
+  return (x.gi.length || x.gc || x.ti.length || x.tc) ? x : null;
+}
+function trList(ids, cash) {
+  const m = {}; ids.forEach(i => { m[i] = (m[i] || 0) + 1; });
+  const p = Object.entries(m).map(([i, n]) => { const it = mkItem(i); return (it ? it.name : '?') + (n > 1 ? ' ×' + n : ''); });
+  if (cash) p.push(fmt(cash)); return p.length ? p.join(', ') : '—';
+}
+const trText = (x, out) => `${out ? 'Віддаєте' : 'Дає'}: ${trList(x.gi, x.gc)}\n${out ? 'Просите' : 'Просить у вас'}: ${trList(x.ti, x.tc)}`;
+// чи влізе все в гараж після зміни складу
+function trFits(remove, add) {
+  const keep = s.owned.slice(); remove.forEach(i => { const k = keep.indexOf(i); if (k >= 0) keep.splice(k, 1); });
+  const old = s.owned; s.owned = keep.concat(add);
+  try { return carsOwned() <= carCap(); } finally { s.owned = old; }
+}
+const trFree = id => cntIn(s.owned, id) - (typeof listedCnt === 'function' ? listedCnt(id) : 0);
+let trWith = null, trGive = {}, trAsk = {}, trTheirOwned = [];
+async function trOpen(u, n) {
+  trWith = { u, n }; trGive = {}; trAsk = {}; trTheirOwned = []; $('tr-gc').value = ''; $('tr-tc').value = '';
+  $('tr-title').textContent = '🤝 Угода: ' + n;
+  trDraw(); $('ov-trade').classList.add('open');
+  try { const v = await jget(`${LB_URL}/scores/${encodeURIComponent(u)}.json`); if (trWith && trWith.u === u) { trTheirOwned = ownedList(v.owned); trDraw(); } } catch (e) {}
+}
+function trGrid(box, owned, sel, free) {
+  box.innerHTML = '';
+  const ids = [...new Set(owned)].filter(id => free(id) > 0);
+  if (!ids.length) { const d = document.createElement('div'); d.className = 'hint'; d.style.gridColumn = '1 / -1'; d.textContent = 'Немає речей'; box.appendChild(d); return; }
+  ids.forEach(id => { const it = mkItem(id); if (!it) return;
+    const b = document.createElement('button'); if (sel[id]) b.classList.add('on');
+    const ci = document.createElement('div'); ci.className = 'ci'; setIcon(ci, it, true);
+    const nm = document.createElement('span'); nm.textContent = it.name; b.append(ci, nm);
+    if (sel[id]) { const q = document.createElement('span'); q.className = 'q'; q.textContent = sel[id] + '/' + free(id); b.appendChild(q); }
+    b.onclick = () => { sel[id] = ((sel[id] || 0) + 1) > free(id) ? 0 : (sel[id] || 0) + 1; if (!sel[id]) delete sel[id]; trDraw(); };
+    box.appendChild(b); });
+}
+const trFlat = m => Object.entries(m).flatMap(([i, n]) => Array(n).fill(i));
+function trDraw() {
+  trGrid($('tr-mine'), s.owned, trGive, trFree);
+  trGrid($('tr-their'), trTheirOwned, trAsk, id => cntIn(trTheirOwned, id));
+  const gc = trNum($('tr-gc').value.replace(/\s/g, '')), tc = trNum($('tr-tc').value.replace(/\s/g, ''));
+  $('tr-sum').textContent = `Віддаєте: ${trList(trFlat(trGive), gc)}\nПросите: ${trList(trFlat(trAsk), tc)}`; $('tr-sum').style.whiteSpace = 'pre-line';
+}
+['tr-gc', 'tr-tc'].forEach(id => $(id).addEventListener('input', e => { e.target.value = e.target.value.replace(/[^\d\s]/g, ''); trDraw(); }));
+$('tr-send').onclick = () => {
+  if (!trWith) return;
+  const gi = trFlat(trGive), ti = trFlat(trAsk), gc = trNum($('tr-gc').value.replace(/\s/g, '')), tc = trNum($('tr-tc').value.replace(/\s/g, ''));
+  if (!(gi.length || gc) || !(ti.length || tc)) { showToast('Додайте щось з обох боків (річ або гроші)'); return; }
+  if (gc > s.score) { showToast('💸 Не вистачає грошей'); return; }
+  if (!trFits(gi, [])) { showToast('🅿️ Без цього гаража машини не поміщаються'); return; }
+  const id = 'T' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), t = Date.now();
+  gi.forEach(dropOne); s.score -= gc;   // резерв
+  const base = { f: s.uid, fn: s.name || 'Гравець', to: trWith.u, tn: trWith.n, gi, gc, ti, tc, t };
+  s.mktOut.push({ m: 'PUT', url: `${TR}/${trWith.u}/${id}.json`, b: base }, { m: 'PUT', url: `${TR}/${s.uid}/${id}.json`, b: { ...base, o: 1 } });
+  save(); render(); mkFlush(); $('ov-trade').classList.remove('open'); showToast('📨 Пропозицію надіслано');
+  frTr[id] = { ...base, o: 1 }; frTab = 3; frOpen(3); setTimeout(frLoad, 1200);
+};
+async function trClaim(id, k) {
+  const r = await fetch(`${TC}/${id}.json`, { method: 'PUT', headers: MK_HDR, body: JSON.stringify({ b: s.uid, k }) });
+  if (r.ok) return 'ok';
+  if (r.status === 401 || r.status === 403) { const g = await fetch(`${TC}/${id}.json`); if (g.ok && await g.json()) return 'taken'; return 'rules'; }
+  throw new Error('claim');
+}
+const trDel = (id, a, b) => [a, b].forEach(u => s.mktOut.push({ m: 'DELETE', url: `${TR}/${u}/${id}.json` }));
+let trBusy = false;
+async function trAct(id, x, kind) {
+  if (trBusy) return; trBusy = true;
+  try {
+    const out = x.f === s.uid;
+    if (kind === 'accept') {
+      if (s.score < x.tc) { showToast('💸 Не вистачає грошей'); return; }
+      if (x.ti.some(i => trFree(i) < x.ti.filter(j => j === i).length)) { showToast('У вас немає потрібних речей (або вони виставлені на ринку)'); return; }
+      if (!trFits(x.ti, x.gi)) { showToast('🅿️ Немає місця для машини: купіть гараж'); return; }
+    }
+    const res = await trClaim(id, kind);
+    if (res === 'taken') { showToast('🚫 Ця угода вже неактуальна'); trDel(id, x.f, x.to); mkFlush(); return; }
+    if (res !== 'ok') { showToast('⚠️ Угоди ще не налаштовані (правила Firebase)'); return; }
+    if (kind === 'cancel') { x.gi.forEach(i => s.owned.push(i)); s.score += x.gc; showToast('↩️ Угоду скасовано, речі повернено'); }
+    else if (kind === 'accept') {
+      x.ti.forEach(dropOne); x.gi.forEach(i => s.owned.push(i)); s.score = Math.max(0, s.score - x.tc) + x.gc;
+      s.mktOut.push({ m: 'POST', url: `${LB_URL}/inbox/${x.f}.json`, b: { k: 'trade', m: 'ok', a: x.tc, it: x.ti, n: s.name || 'Гравець', u: s.uid, t: Date.now() } });
+      showToast('🤝 Угоду укладено!'); vibrate([30, 40, 60]);
+    } else {
+      s.mktOut.push({ m: 'POST', url: `${LB_URL}/inbox/${x.f}.json`, b: { k: 'trade', m: 'no', a: x.gc, it: x.gi, n: s.name || 'Гравець', u: s.uid, t: Date.now() } });
+      showToast('Угоду відхилено');
+    }
+    trDel(id, x.f, x.to); delete frTr[id]; save(); render(); mkFlush(); frBadge(); frRender();
+  } catch (e) { showToast('⚠️ Немає зв’язку з сервером, спробуйте пізніше'); }
+  finally { trBusy = false; }
+}
+const trAccept = (id, x) => trAct(id, x, 'accept'), trDecline = (id, x) => trAct(id, x, 'decline'), trCancel = (id, x) => trAct(id, x, 'cancel');
+function tradeNotice(v) {
+  soldNotice.kinds.add('trade');
+  const ok = v.m === 'ok', ids = trIds(v.it), cash = trNum(v.a), uid = String(v.u || '');
+  const row = document.createElement('div'); row.className = 'chrow'; row.style.cursor = uid ? 'pointer' : 'default';
+  const ci = document.createElement('div'); ci.className = 'ci'; ci.textContent = ok ? '🤝' : '↩️';
+  const cb = document.createElement('div'); cb.className = 'cb';
+  const b = document.createElement('b'); b.textContent = `${String(v.n || 'Гравець').slice(0, 30)} ${ok ? 'прийняв вашу угоду' : 'відхилив вашу угоду'}` + (uid ? ' ›' : '');
+  const sm = document.createElement('small'); sm.style.whiteSpace = 'normal'; sm.textContent = (ok ? 'Ви отримали: ' : 'Вам повернено: ') + trList(ids, cash);
+  if (uid) row.onclick = () => openPlayerByUid(uid);
+  cb.append(b, sm); row.append(ci, cb); $('sold-list').appendChild(row); soldTitle(); $('ov-sold').classList.add('open');
+}
+setInterval(frLoad, 20000); setTimeout(frLoad, 2000);
 const gaSig = () => [s.owned.join(','), s.name, s.bizLvl, s.bizCap, s.mult, s.avatar, s.tag, s.stitle, Math.floor(s.total / 2000)].join('|');
 async function gaAdopt(cloud) {
   const oldUid = s.uid;
