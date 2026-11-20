@@ -376,6 +376,7 @@
       <div style="padding: 16px 14px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
         <button id="open-ach" class="achbtn" data-open="ov-ach"><span>🏅 Досягнення</span><small id="ach-count"></small></button>
         <button id="open-promo" class="achbtn promo" data-open="ov-promo"><span>🎁 Промокод</span><small>Ввести код ›</small></button>
+        <button id="open-frprof" class="achbtn" style="grid-column: 1 / -1; background: #64b5f6; color: #0b2a4a"><span>👥 Друзі та угоди</span><small id="frprof-sub" style="color: #0b2a4a">Друзі, чати, обміни ›</small></button>
       </div>
       <div class="backup" id="ga-box">
         <div class="coll-h">☁️ Акаунт Google</div>
@@ -437,7 +438,7 @@
       <div class="mk-label" style="margin-top: 0">1. Оберіть товар</div>
       <div class="grid" id="ad-grid" style="padding: 0"></div>
       <div class="mk-label">2. Ціна, $</div>
-      <input id="ad-price" class="mk-input" maxlength="15" type="text" inputmode="numeric" placeholder="Наприклад, 20000" autocomplete="off">
+      <input id="ad-price" class="mk-input" maxlength="15" type="text" inputmode="numeric" placeholder="Наприклад, 20000 (0 — безкоштовно)" autocomplete="off">
       <div class="hint" id="ad-hint" style="text-align: left; padding-top: 4px"></div>
       <div class="mk-label">3. Опис (необов’язково)</div>
       <textarea id="ad-desc" class="mk-input" rows="3" maxlength="200" placeholder="Розкажіть про товар" style="resize: none"></textarea>
@@ -654,7 +655,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 90;
+const APP_VERSION = 91;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -1701,6 +1702,11 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 91, date: '20 листопада', title: 'Друзі в профілі, подарунки', items: [
+    '👥 Кнопка «Друзі та угоди» тепер є й у Профілі',
+    '🔔 Запити в друзі та пропозиції угод показуються на головному екрані',
+    '🎁 На ринку можна виставити річ за 0, тобто віддати безкоштовно (а в угоді можна просто подарувати)',
+  ]},
   { v: 90, date: '19 листопада', title: 'Друзі та угоди', items: [
     '👥 Друзі: додавайте гравців за ID чи нікнеймом або з їхнього профілю (кнопки у 🏆 Лідерах та 🏪 Ринку)',
     '💬 Пишіть друзям особисті повідомлення',
@@ -2060,7 +2066,7 @@ const mkItem = id => SHOP.find(x => x.id === id);
 function mkClean(id, v) {
   if (!v || typeof v !== 'object') return null;
   const it = mkItem(v.i), p = Math.floor(Number(v.p));
-  if (!it || !(p >= 1) || p > MK_PRICE_MAX) return null;
+  if (!it || !(p >= 0) || p > MK_PRICE_MAX) return null;
   return { id, v: Number(v.v) || 1, u: String(v.u || ''), n: String(v.n || 'Гравець').slice(0, 30), it, p, d: String(v.d || '').slice(0, 200), t: Number(v.t) || 0 };
 }
 async function mkLoad() {
@@ -2117,7 +2123,7 @@ function mkShowListing(l) {
   $('ls-price').textContent = fmt(l.p);
   $('ls-seller').textContent = `👤 Продавець: ${l.n}${l.u === s.uid ? ' (ви)' : ''} · ${accountId(l.n)}  ›`;
   $('ls-desc').textContent = l.d || 'Без опису';
-  $('ls-act').textContent = l.u === s.uid ? '↩️ Зняти з продажу' : `🛒 Купити за ${fmt(l.p)}`;
+  $('ls-act').textContent = l.u === s.uid ? '↩️ Зняти з продажу' : (l.p === 0 ? '🎁 Забрати безкоштовно' : `🛒 Купити за ${fmt(l.p)}`);
   $('ls-chat').textContent = l.u === s.uid ? '💬 Мої чати' : '💬 Написати продавцю';
   $('ov-listing').classList.add('open');
 }
@@ -2219,7 +2225,7 @@ function promoNotice(who, amount, totalEarned, uid) {
   cb.append(b, sm); row.append(ci, cb); list.appendChild(row);
   soldTitle(); $('ov-sold').classList.add('open');
 }
-function soldTitle() { const k = soldNotice.kinds; $('sold-title').textContent = k.size > 1 ? '💰 Нові надходження' : k.has('trade') ? '🤝 Результат угоди' : k.has('promo') ? '🎁 Вам нарахували бонус!' : '💰 Вашу річ купили!'; }
+function soldTitle() { const k = soldNotice.kinds; $('sold-title').textContent = k.has('social') ? '🔔 Нові події' : k.size > 1 ? '💰 Нові надходження' : k.has('trade') ? '🤝 Результат угоди' : k.has('promo') ? '🎁 Вам нарахували бонус!' : '💰 Вашу річ купили!'; }
 function soldNotice(it, buyer, amount, uid) {
   soldNotice.kinds.add('sale');
   const list = $('sold-list');
@@ -2228,7 +2234,7 @@ function soldNotice(it, buyer, amount, uid) {
   const cb = document.createElement('div'); cb.className = 'cb';
   const b = document.createElement('b'); b.textContent = `${buyer} купив «${it ? it.name : 'річ'}»` + (uid ? ' ›' : '');
   if (uid) { row.style.cursor = 'pointer'; row.onclick = () => openPlayerByUid(uid); }
-  const sm = document.createElement('small'); sm.style.whiteSpace = 'normal'; sm.textContent = `Ви отримали ${fmt(amount)}`;
+  const sm = document.createElement('small'); sm.style.whiteSpace = 'normal'; sm.textContent = amount > 0 ? `Ви отримали ${fmt(amount)}` : 'Ви віддали безкоштовно';
   cb.append(b, sm); row.append(ci, cb); list.appendChild(row);
   soldTitle(); $('ov-sold').classList.add('open');
 }
@@ -2244,7 +2250,7 @@ async function inboxPoll() {
       if (d.ok && v && v.k === 'trade') {
         const ids = trIds(v.it), cash = trNum(v.a); ids.forEach(i => s.owned.push(i)); s.score += cash; save(); render(); tradeNotice(v); vibrate([30, 40, 60]); continue;
       }
-      if (!d.ok || !v || !Number.isFinite(v.a) || v.a <= 0 || v.a > MK_PRICE_MAX) continue;
+      if (!d.ok || !v || !Number.isFinite(v.a) || v.a < 0 || (v.a === 0 && !v.r) || v.a > MK_PRICE_MAX) continue;
       const it = mkItem(v.i);
       s.score += v.a; if (v.r) dropOne(v.i); save(); render();
       if (v.k === 'promo') { s.refEarned += v.a; save(); promoNotice(String(v.n || 'Гравець').slice(0, 30), v.a, s.refEarned, String(v.u || '')); }
@@ -2280,7 +2286,7 @@ $('ad-go').onclick = async () => {
   const it = mkSel && mkItem(mkSel);
   if (!it || !isOwned(it.id)) { showToast('Оберіть товар'); return; }
   const price = Math.floor(Number($('ad-price').value.replace(/[\s,$]/g, '')));
-  if (!(price >= 1)) { showToast('Вкажіть ціну'); return; }
+  if (!$('ad-price').value.trim() || !(price >= 0)) { showToast('Вкажіть ціну (0 — віддати безкоштовно)'); return; }
   if (!Number.isSafeInteger(price)) { showToast('Задовге число'); return; }
   if (mkMineList().length >= MK_MAX) { showToast(`Можна мати не більше ${MK_MAX} оголошень`); return; }
   if (listedCnt(it.id) >= cntIn(s.owned, it.id)) { showToast('Ця річ уже виставлена'); return; }
@@ -2352,11 +2358,11 @@ function openChat(info) {
   const it = mkItem(info.i);
   $('ch-title').textContent = '💬 ' + info.w + ' ›';
   const box = $('ch-item'); box.innerHTML = '';
-  const lst = mkList.find(l => l.id === info.lid), price = info.p || (lst && lst.p);
+  const lst = mkList.find(l => l.id === info.lid), price = lst ? lst.p : (info.p === undefined || info.p === null || info.p === '' ? null : info.p);
   if (it) {
     const ci = document.createElement('div'); ci.className = 'ci'; setIcon(ci, it, true);
     const tx = document.createElement('div'), nm = document.createElement('b'); nm.textContent = it.name; tx.appendChild(nm);
-    if (price) { const cp = document.createElement('span'); cp.className = 'cp'; cp.textContent = fmt(price); tx.appendChild(cp); }
+    if (price !== null && price !== undefined) { const cp = document.createElement('span'); cp.className = 'cp'; cp.textContent = price === 0 ? 'Безкоштовно' : fmt(price); tx.appendChild(cp); }
     else { const cn = document.createElement('span'); cn.className = 'cn'; cn.textContent = 'Оголошення вже неактуальне'; tx.appendChild(cn); }
     box.append(ci, tx);
   }
@@ -2496,12 +2502,33 @@ async function frLoad() {
   try {
     [frList, frIn, frTr] = await Promise.all([jget(`${FR}/${s.uid}.json`), jget(`${FQ}/${s.uid}.json`), jget(`${TR}/${s.uid}.json`)]);
     Object.keys(frTr).forEach(k => { if (!frTr[k] || typeof frTr[k] !== 'object') delete frTr[k]; });
-    frBadge(); if ($('ov-friends').classList.contains('open')) frRender();
+    frBadge(); if ($('ov-friends').classList.contains('open')) frRender(); frNotify();
   } catch (e) {}
+}
+const frSeenGet = () => { try { return JSON.parse(localStorage.getItem('clicker_fr_seen') || 'null'); } catch (e) { return null; } };
+function frNotice(icon, title, sub, tab) {
+  soldNotice.kinds.add('social');
+  const row = document.createElement('div'); row.className = 'chrow'; row.style.cursor = 'pointer';
+  const ci = document.createElement('div'); ci.className = 'ci'; ci.textContent = icon;
+  const cb = document.createElement('div'); cb.className = 'cb';
+  const b = document.createElement('b'); b.textContent = title + ' ›';
+  const sm = document.createElement('small'); sm.style.whiteSpace = 'pre-line'; sm.textContent = sub;
+  row.onclick = () => { $('sold-ok').click(); frOpen(tab); };
+  cb.append(b, sm); row.append(ci, cb); $('sold-list').appendChild(row); soldTitle(); $('ov-sold').classList.add('open'); vibrate([30, 40, 60]);
+}
+function frNotify() {
+  let seen = frSeenGet(); const first = !seen; seen = seen || { k: [], f: [] };
+  const known = new Set(seen.k), fk = new Set(seen.f); let any = false;
+  Object.entries(frIn).forEach(([u, v]) => { const k = 'q' + u; if (!known.has(k)) { known.add(k); any = true; frNotice('📩', String((v && v.n) || 'Гравець').slice(0, 20) + ' хоче дружити', 'Запит у друзі', 2); } });
+  Object.entries(frTr).forEach(([id, t]) => { const x = trClean(t); if (!x || t.o || known.has(id)) return; known.add(id); any = true;
+    frNotice('🤝', String(t.fn || 'Гравець').slice(0, 20) + ' пропонує угоду', trText(x, false), 3); });
+  Object.entries(frList).forEach(([u, v]) => { if (!fk.has(u)) { fk.add(u); if (!first) { any = true; frNotice('👥', String((v && v.n) || 'Гравець').slice(0, 20) + ' тепер у ваших друзях', 'Можна писати й обмінюватись', 1); } } });
+  try { localStorage.setItem('clicker_fr_seen', JSON.stringify({ k: [...known].slice(-200), f: [...fk] })); } catch (e) {}
 }
 function frBadge() {
   const n = frCnt();
   $('mk-friends').textContent = '👥 Друзі' + (n ? ` (${n})` : '');
+  $('frprof-sub').textContent = n ? `Нових: ${n} ›` : 'Друзі, чати, обміни ›';
   showDot($('dot-chat'), chUnread + n);
   $('fr-t2').textContent = '📩 Запити' + (Object.keys(frIn).length ? ` (${Object.keys(frIn).length})` : '');
   $('fr-t3').textContent = '🤝 Угоди' + (Object.values(frTr).filter(t => !t.o).length ? ` (${Object.values(frTr).filter(t => !t.o).length})` : '');
@@ -2543,6 +2570,7 @@ function frRender() {
 }
 $('fr-t1').onclick = () => { frTab = 1; frRender(); }; $('fr-t2').onclick = () => { frTab = 2; frRender(); }; $('fr-t3').onclick = () => { frTab = 3; frRender(); };
 $('mk-friends').onclick = () => frOpen(1);
+$('open-frprof').onclick = () => frOpen(frCnt() ? 2 : 1);
 $('lb-friends').onclick = () => frOpen(1);
 function frChat(u, n) { openChat({ key: frKey(u), lid: '', i: '', wu: u, w: n, p: 0 }); }
 async function frAdd(u, n) {
@@ -2646,7 +2674,7 @@ function trDraw() {
 $('tr-send').onclick = () => {
   if (!trWith) return;
   const gi = trFlat(trGive), ti = trFlat(trAsk), gc = trNum($('tr-gc').value.replace(/\s/g, '')), tc = trNum($('tr-tc').value.replace(/\s/g, ''));
-  if (!(gi.length || gc) || !(ti.length || tc)) { showToast('Додайте щось з обох боків (річ або гроші)'); return; }
+  if (!(gi.length || gc || ti.length || tc)) { showToast('Додайте річ або гроші'); return; }
   if (gc > s.score) { showToast('💸 Не вистачає грошей'); return; }
   if (!trFits(gi, [])) { showToast('🅿️ Без цього гаража машини не поміщаються'); return; }
   const id = 'T' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), t = Date.now();
