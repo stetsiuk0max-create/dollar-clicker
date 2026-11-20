@@ -156,6 +156,16 @@
   .frbtn.no { background: #7a2e2e; color: #fff; }
   #pl-actions { display: flex; gap: 8px; padding: 0 14px 10px; flex-wrap: wrap; }
   #pl-actions .frbtn { flex: 1; font-size: 14px; }
+  .rtrack { position: relative; height: 46px; background: #183a26; border-radius: 12px; margin: 4px 0 2px; }
+  .rtrack .rcar { position: absolute; top: 3px; left: 0; width: 54px; height: 40px; transition: left .3s; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  .rtrack .rcar .pic { width: 54px; height: 40px; object-fit: contain; }
+  .rtrack::after { content: '🏁'; position: absolute; right: 4px; top: 10px; font-size: 20px; }
+  .rname { display: flex; justify-content: space-between; font-weight: 800; font-size: 15px; padding-top: 8px; }
+  #rc-target { text-align: center; font-size: 110px; font-weight: 900; line-height: 1.15; color: #ffd54f; padding: 8px 0 0; }
+  #rc-pad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 6px 0; }
+  #rc-pad button { border: none; border-radius: 14px; padding: 22px 0; background: #2d6a43; color: #fff; font-size: 26px; font-weight: 900; font-family: inherit; }
+  #rc-pad button:active { background: #ffd54f; color: #3e2f00; }
+  #rc-pad.lock button { opacity: .35; }
   .chrow { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: #1f4a30; border: none; border-radius: 14px; padding: 10px 12px; color: #fff; font-family: inherit; margin-bottom: 8px; }
   .chrow .ci { width: 54px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex: none; }
   .chrow .ci .pic { width: 54px; height: 40px; object-fit: contain; }
@@ -547,6 +557,7 @@
     <div class="sheet-head"><h2>🎲 Щасливе число</h2><button class="close">✕</button></div>
     <div class="balance"></div>
     <div class="scroll">
+      <div style="padding: 0 14px 10px"><button id="open-race" class="sellbtn" style="background: #64b5f6; color: #0b2a4a">🏎️ Гонка 1 на 1 · ставка від $5,000</button></div>
       <div class="gsec">1. Скільки чисел? Більше чисел — більший множник</div>
       <div class="rg" id="g-ranges"></div>
       <div class="gsec" style="padding-top:12px">2. Оберіть своє число</div>
@@ -636,6 +647,43 @@
   </div>
 </div>
 
+<!-- Гонка -->
+<div class="overlay" id="ov-race" style="z-index: 18">
+  <div class="sheet" style="height: 100%; border-radius: 0">
+    <div class="sheet-head"><h2 id="rc-title" style="font-size: 20px">🏎️ Гонка</h2><button class="close" id="rc-x">✕</button></div>
+    <div class="scroll" style="padding: 0 14px 22px; flex: 1; min-height: 0">
+      <div id="rc-setup">
+        <div class="coll-h">1. Оберіть машину</div>
+        <div id="rc-cars" class="trgrid"></div>
+        <div class="coll-h" style="padding-top: 10px">2. Ставка (мінімум $5,000, переможець забирає ×2)</div>
+        <div class="nick" style="padding: 4px 0"><input id="rc-bet" inputmode="decimal" placeholder="Напр. 5000 або 50k" autocomplete="off" value="5000"></div>
+        <div class="chips" id="rc-chips"><button data-bet="5000">5K</button><button data-bet="10000">10K</button><button data-bet="50000">50K</button><button data-bet="100000">100K</button><button data-bet="1000000">1M</button></div>
+        <div class="hint" id="rc-info" style="padding: 8px 0"></div>
+        <button id="rc-go" class="sellbtn">🔎 Знайти суперника</button>
+        <div class="hint" style="padding: 10px 0">На екрані з'являється число від 1 до 10. Хто першим натисне це число, отримує очко. Перший до 10 очок перемагає. Помилка чи фальстарт блокують кнопки на секунду.</div>
+      </div>
+      <div id="rc-wait" style="display: none; text-align: center; padding-top: 30px">
+        <div style="font-size: 60px">🏎️</div>
+        <div id="rc-wtxt" style="font-size: 18px; font-weight: 800; padding: 10px 0">Шукаємо суперника…</div>
+        <div class="hint" id="rc-wsub" style="padding-bottom: 16px"></div>
+        <button id="rc-cancel" class="sellbtn" style="background: #7a2e2e; color: #fff">✕ Скасувати</button>
+      </div>
+      <div id="rc-run" style="display: none">
+        <div id="rc-tracks"></div>
+        <div id="rc-target">…</div>
+        <div id="rc-status" class="hint" style="text-align: center; min-height: 20px"></div>
+        <div id="rc-pad"></div>
+      </div>
+      <div id="rc-res" style="display: none; text-align: center; padding-top: 30px">
+        <div id="rc-rico" style="font-size: 70px"></div>
+        <div id="rc-rtxt" style="font-size: 22px; font-weight: 800; padding: 8px 0"></div>
+        <div class="hint" id="rc-rsub" style="padding-bottom: 18px; white-space: pre-line"></div>
+        <button id="rc-again" class="sellbtn">🔁 Ще раз</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Лідери -->
 <div class="overlay" id="ov-lb">
   <div class="sheet">
@@ -655,7 +703,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 91;
+const APP_VERSION = 92;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -674,7 +722,7 @@ function cleanEmoji(str) {
 }
 const KEY = 'clicker_save_v2';
 const DEFAULT = { score: 1, total: 0, mult: 0 };
-let s = { ...DEFAULT, biz: 0, bizLvl: 0, bizCap: 0, pool: 0, stockGive: [], mktPend: null, mktOut: [], last: Date.now(), owned: [], avatar: '', g: { p: 0, w: 0, b: 0 }, pend: null, time: 0, clicks: 0, tag: '', stitle: '', redeemed: [], special: [], promoBonus: 0, refEarned: 0 };
+let s = { ...DEFAULT, biz: 0, bizLvl: 0, bizCap: 0, pool: 0, stockGive: [], mktPend: null, racePend: null, mktOut: [], last: Date.now(), owned: [], avatar: '', g: { p: 0, w: 0, b: 0 }, pend: null, time: 0, clicks: 0, tag: '', stitle: '', redeemed: [], special: [], promoBonus: 0, refEarned: 0 };
 try {
   const saved = JSON.parse(localStorage.getItem(KEY)) || {};
   s.score = saved.score ?? DEFAULT.score;
@@ -687,7 +735,8 @@ try {
   s.bizCap = Math.max(0, Math.floor(saved.bizCap) || 0);
   s.stockGive = Array.isArray(saved.stockGive) ? saved.stockGive.filter(x => typeof x === 'string') : [];
   if (saved.mktPend && typeof saved.mktPend.id === 'string' && typeof saved.mktPend.i === 'string' && Number.isFinite(saved.mktPend.p)) s.mktPend = { id: saved.mktPend.id, k: saved.mktPend.k === 'cancel' ? 'cancel' : 'buy', i: saved.mktPend.i, p: saved.mktPend.p, u: String(saved.mktPend.u || ''), v: Number(saved.mktPend.v) || 1 };
-  s.mktOut = Array.isArray(saved.mktOut) ? saved.mktOut.filter(o => o && typeof o.url === 'string' && (o.m === 'POST' || o.m === 'DELETE')).slice(0, 50) : [];
+  s.racePend = (saved.racePend && Number.isFinite(saved.racePend.bet) && saved.racePend.bet > 0) ? { rid: String(saved.racePend.rid || ''), bet: Math.floor(saved.racePend.bet), t: Number(saved.racePend.t) || 0 } : null;
+  s.mktOut = Array.isArray(saved.mktOut) ? saved.mktOut.filter(o => o && typeof o.url === 'string' && (o.m === 'POST' || o.m === 'DELETE' || o.m === 'PUT')).slice(0, 50) : [];
   // Автоклікер прибрано: повертаємо гроші за куплені (один раз)
   const oldAuto = Math.floor(saved.auto) || 0;
   if (oldAuto > 0) { let t = 0; for (let i = 0; i < oldAuto; i++) t += Math.floor(50 * Math.pow(1.55, i)); s.score += t; }
@@ -1702,6 +1751,10 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 92, date: '20 листопада', title: 'Гонки на машинах 🏎️', items: [
+    '🏎️ Нова гра «Гонка 1 на 1»: розділ «Гра» → оберіть свою машину, ставку від $5,000 і знайдіть суперника (або киньте виклик другу)',
+    '🔢 На екрані з\'являється число від 1 до 10: хто першим натисне його, отримує очко. Перший до 10 очок виграє і забирає подвійну ставку',
+  ]},
   { v: 91, date: '20 листопада', title: 'Друзі в профілі, подарунки', items: [
     '👥 Кнопка «Друзі та угоди» тепер є й у Профілі',
     '🔔 Запити в друзі та пропозиції угод показуються на головному екрані',
@@ -2496,11 +2549,12 @@ async function gaPush(keep) {
 const FR = `${LB_URL}/friends`, FQ = `${LB_URL}/friendreq`, TR = `${LB_URL}/usertrades`, TC = `${LB_URL}/tradeclaim`;
 let frList = {}, frIn = {}, frTr = {}, frTab = 1, plUid = '', plName = '';
 const frKey = u => 'd_' + [s.uid, u].sort().join('_');
-const frCnt = () => Object.keys(frIn).length + Object.values(frTr).filter(t => !t.o).length;
+const frCnt = () => Object.keys(frIn).length + Object.values(frTr).filter(t => !t.o).length + Object.keys(rcInv).length;
 const jget = async u => { const r = await fetch(u); if (!r.ok) throw new Error('get'); return (await r.json()) || {}; };
 async function frLoad() {
   try {
-    [frList, frIn, frTr] = await Promise.all([jget(`${FR}/${s.uid}.json`), jget(`${FQ}/${s.uid}.json`), jget(`${TR}/${s.uid}.json`)]);
+    [frList, frIn, frTr, rcInv] = await Promise.all([jget(`${FR}/${s.uid}.json`), jget(`${FQ}/${s.uid}.json`), jget(`${TR}/${s.uid}.json`), jget(`${LB_URL}/raceinv/${s.uid}.json`)]);
+    Object.keys(rcInv).forEach(k => { const v = rcInv[k]; if (!v || typeof v !== 'object' || Date.now() - (v.t || 0) > 100000 || !(Number(v.bet) >= RC_MIN)) delete rcInv[k]; });
     Object.keys(frTr).forEach(k => { if (!frTr[k] || typeof frTr[k] !== 'object') delete frTr[k]; });
     frBadge(); if ($('ov-friends').classList.contains('open')) frRender(); frNotify();
   } catch (e) {}
@@ -2520,6 +2574,7 @@ function frNotify() {
   let seen = frSeenGet(); const first = !seen; seen = seen || { k: [], f: [] };
   const known = new Set(seen.k), fk = new Set(seen.f); let any = false;
   Object.entries(frIn).forEach(([u, v]) => { const k = 'q' + u; if (!known.has(k)) { known.add(k); any = true; frNotice('📩', String((v && v.n) || 'Гравець').slice(0, 20) + ' хоче дружити', 'Запит у друзі', 2); } });
+  Object.entries(rcInv).forEach(([rid, v]) => { const k = 'r' + rid; if (known.has(k)) return; known.add(k); any = true; frNotice('🏎️', String(v.n || 'Гравець').slice(0, 20) + ' кличе на гонку', 'Ставка ' + fmt(Number(v.bet)) + ', виграш ' + fmt(Number(v.bet) * 2), 1); });
   Object.entries(frTr).forEach(([id, t]) => { const x = trClean(t); if (!x || t.o || known.has(id)) return; known.add(id); any = true;
     frNotice('🤝', String(t.fn || 'Гравець').slice(0, 20) + ' пропонує угоду', trText(x, false), 3); });
   Object.entries(frList).forEach(([u, v]) => { if (!fk.has(u)) { fk.add(u); if (!first) { any = true; frNotice('👥', String((v && v.n) || 'Гравець').slice(0, 20) + ' тепер у ваших друзях', 'Можна писати й обмінюватись', 1); } } });
@@ -2553,8 +2608,10 @@ function frRender() {
   if (frTab === 1) {
     const L = Object.entries(frList).filter(([k, v]) => v && typeof v === 'object');
     $('fr-note').textContent = L.length ? '' : 'Друзів поки немає. Додайте за ID чи нікнеймом, або з профілю гравця (🏆 Лідери).';
+    Object.entries(rcInv).forEach(([rid, v]) => { const n = String(v.n || 'Гравець').slice(0, 20);
+      row('🏎️', n + ' кличе на гонку', 'Ставка ' + fmt(Number(v.bet)) + ', виграш ' + fmt(Number(v.bet) * 2), [['✓', '', () => raceOpen(null, { rid, n, f: String(v.f), bet: Math.floor(Number(v.bet)), car: v.car })], ['✕', 'no', () => { fetch(`${LB_URL}/raceinv/${s.uid}/${rid}.json`, { method: 'DELETE' }); delete rcInv[rid]; frBadge(); frRender(); }]]); });
     L.forEach(([u, v]) => { const n = String(v.n || 'Гравець').slice(0, 20);
-      row('🙂', n, '', [['💬', '', () => frChat(u, n)], ['🤝', '', () => trOpen(u, n)]], () => openPlayerByUid(u)); });
+      row('🙂', n, '', [['💬', '', () => frChat(u, n)], ['🤝', '', () => trOpen(u, n)], ['🏎️', '', () => raceOpen({ u, n })]], () => openPlayerByUid(u)); });
   } else if (frTab === 2) {
     const L = Object.entries(frIn);
     $('fr-note').textContent = L.length ? '' : 'Нових запитів немає.';
@@ -2570,6 +2627,7 @@ function frRender() {
 }
 $('fr-t1').onclick = () => { frTab = 1; frRender(); }; $('fr-t2').onclick = () => { frTab = 2; frRender(); }; $('fr-t3').onclick = () => { frTab = 3; frRender(); };
 $('mk-friends').onclick = () => frOpen(1);
+$('open-race').onclick = () => raceOpen();
 $('open-frprof').onclick = () => frOpen(frCnt() ? 2 : 1);
 $('lb-friends').onclick = () => frOpen(1);
 function frChat(u, n) { openChat({ key: frKey(u), lid: '', i: '', wu: u, w: n, p: 0 }); }
@@ -2618,7 +2676,7 @@ async function plActions() {
   box.style.display = 'flex';
   const mk = (t, cls, fn) => { const b = document.createElement('button'); b.className = 'frbtn ' + cls; b.textContent = t; b.onclick = fn; box.appendChild(b); };
   const n = plName || 'Гравець';
-  if (frList[u]) { mk('💬 Написати', '', () => frChat(u, n)); mk('🤝 Угода', '', () => trOpen(u, n)); mk('✕ З друзів', 'no', () => frRemove(u)); return; }
+  if (frList[u]) { mk('💬 Написати', '', () => frChat(u, n)); mk('🤝 Угода', '', () => trOpen(u, n)); mk('🏎️ Гонка', '', () => raceOpen({ u, n })); mk('✕ З друзів', 'no', () => frRemove(u)); return; }
   if (frIn[u]) { mk('✓ Прийняти запит', '', () => frAccept(u, n)); return; }
   mk('➕ Додати в друзі', '', () => frAdd(u, n));
   try { const r = await fetch(`${FQ}/${u}/${s.uid}.json`); if (r.ok && await r.json() && plUid === u) { box.innerHTML = ''; mk('⏳ Запит надіслано', 'no', () => {}); } } catch (e) {}
@@ -2730,6 +2788,206 @@ function tradeNotice(v) {
   cb.append(b, sm); row.append(ci, cb); $('sold-list').appendChild(row); soldTitle(); $('ov-sold').classList.add('open');
 }
 setInterval(frLoad, 20000); setTimeout(frLoad, 2000);
+// ===== Гонки на машинах =====
+const RC = { q: `${LB_URL}/raceq`, seat: `${LB_URL}/raceseat`, clm: `${LB_URL}/raceclaim`, inv: `${LB_URL}/raceinv`, ping: `${LB_URL}/raceping` };
+const RC_MIN = 5000, RC_WIN = 10, TS = { '.sv': 'timestamp' };
+let R = null, rcCar = null, rcFriend = null, rcInvite = null, rcInv = {};
+const rcTarget = (rid, n) => 1 + cyrb53(rid + '|' + n) % 10;
+const rcDelay = (rid, n) => 700 + cyrb53(rid + '|d' + n) % 1300;
+const rcParse = v => { v = String(v).toLowerCase().replace(/[\s,$]/g, ''); const m = v.match(/^(\d+(?:\.\d+)?)([kmкм]?)$/); if (!m) return 0; return Math.floor(Number(m[1]) * ({ k: 1e3, 'к': 1e3, m: 1e6, 'м': 1e6 }[m[2]] || 1)); };
+const rcView = n => ['setup', 'wait', 'run', 'res'].forEach(v => { $('rc-' + v).style.display = v === n ? '' : 'none'; });
+const rcPut = (u, b) => fetch(u, { method: 'PUT', headers: MK_HDR, body: JSON.stringify(b) });
+const rcCars = () => SHOP.filter(i => i.cat === 'car' && cntIn(s.owned, i.id) > 0);
+function raceOpen(friend, invite) {
+  if (R) { $('ov-race').classList.add('open'); return; }
+  rcFriend = friend || null; rcInvite = invite || null; rcCar = null;
+  rcView('setup');
+  $('rc-title').textContent = invite ? '🏎️ Виклик від ' + invite.n : friend ? '🏎️ Виклик: ' + friend.n : '🏎️ Гонка';
+  $('rc-bet').value = invite ? String(invite.bet) : ($('rc-bet').value || '5000'); $('rc-bet').disabled = !!invite; $('rc-chips').style.display = invite ? 'none' : '';
+  $('rc-go').textContent = invite ? '🏁 Прийняти виклик' : friend ? '📨 Надіслати виклик' : '🔎 Знайти суперника';
+  rcDraw(); $('ov-race').classList.add('open');
+}
+function rcDraw() {
+  const box = $('rc-cars'); box.innerHTML = ''; const cars = rcCars();
+  if (cars.length && !cars.some(c => c.id === rcCar)) rcCar = cars[0].id;
+  if (!cars.length) { const d = document.createElement('div'); d.className = 'hint'; d.style.gridColumn = '1 / -1'; d.textContent = 'У вас немає машин. Купіть машину в магазині 🚗'; box.appendChild(d); }
+  cars.forEach(it => { const b = document.createElement('button'); if (it.id === rcCar) b.classList.add('on');
+    const ci = document.createElement('div'); ci.className = 'ci'; setIcon(ci, it, true); const nm = document.createElement('span'); nm.textContent = it.name; b.append(ci, nm);
+    b.onclick = () => { rcCar = it.id; rcDraw(); }; box.appendChild(b); });
+  const bet = rcParse($('rc-bet').value);
+  $('rc-info').textContent = bet >= RC_MIN ? `Ставка ${fmt(bet)} · виграш ${fmt(bet * 2)}` : 'Мінімальна ставка $5,000';
+}
+$('rc-bet').addEventListener('input', rcDraw);
+$('rc-chips').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { $('rc-bet').value = b.dataset.bet; rcDraw(); } });
+for (let i = 1; i <= 10; i++) { const b = document.createElement('button'); b.textContent = i; b.onclick = () => rcPress(i); $('rc-pad').appendChild(b); }
+function rcRefund() { if (s.racePend) { s.score += s.racePend.bet; s.racePend = null; save(); render(); } }
+async function rcSeat(rid, body) {
+  const r = await rcPut(`${RC.seat}/${rid}.json`, body);
+  if (r.ok) return { res: 'ok', t: (await r.json()).t };
+  if (r.status === 401 || r.status === 403) return { res: 'taken' };
+  throw new Error('seat');
+}
+const rcMe = () => ({ u: s.uid, n: s.name || 'Гравець', car: R.car, t: TS });
+async function rcGo() {
+  if (R) return;
+  const bet = rcParse($('rc-bet').value);
+  if (!rcCar) { showToast('Оберіть машину'); return; }
+  if (bet < RC_MIN) { showToast('Мінімальна ставка $5,000'); return; }
+  if (bet > s.score) { showToast('💸 Не вистачає грошей'); return; }
+  const rid = 'R' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  s.score -= bet; s.racePend = { rid, bet, t: Date.now() }; save(); render();
+  R = { rid, bet, car: rcCar, role: 'host', opp: null, claims: {}, round: 0, off: 0, over: false, lockUntil: 0, friend: rcFriend, born: Date.now() };
+  try {
+    if (rcInvite) {
+      R.role = 'guest'; R.rid = rcInvite.rid; s.racePend.rid = R.rid; save();
+      const st = await rcSeat(R.rid, rcMe());
+      fetch(`${RC.inv}/${s.uid}/${R.rid}.json`, { method: 'DELETE' }); delete rcInv[R.rid]; frBadge();
+      if (st.res !== 'ok') { R = null; rcRefund(); rcView('setup'); showToast('🚫 Виклик уже неактуальний'); return; }
+      R.opp = { u: rcInvite.f, n: rcInvite.n, car: rcInvite.car }; return rcStart(st.t);
+    }
+    rcView('wait'); $('rc-wtxt').textContent = rcFriend ? `Чекаємо на ${rcFriend.n}…` : 'Шукаємо суперника…'; $('rc-wsub').textContent = `Ставка ${fmt(bet)}`;
+    if (!rcFriend) {
+      const all = await jget(`${RC.q}/${bet}.json`);
+      for (const [u, v] of Object.entries(all)) { if (await rcTryJoin(u, v)) return; }
+    }
+    await rcPost(); R.wait = setInterval(rcWaitTick, 1000);
+  } catch (e) { rcAbort('⚠️ Немає зв’язку або правила Firebase'); }
+}
+async function rcTryJoin(u, v) {
+  if (u === s.uid || !v || !v.rid || Date.now() - (v.t || 0) > 15000) return false;
+  const st = await rcSeat(v.rid, rcMe()); if (st.res !== 'ok') return false;
+  fetch(`${RC.q}/${R.bet}/${u}.json`, { method: 'DELETE' });
+  R.role = 'guest'; R.rid = v.rid; R.opp = { u, n: String(v.n || 'Гравець').slice(0, 20), car: v.car }; s.racePend.rid = v.rid; save();
+  rcStart(st.t); return true;
+}
+async function rcPost() {
+  R.rid = 'R' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); R.role = 'host'; R.posted = Date.now(); s.racePend.rid = R.rid; save();
+  if (R.friend) await rcPut(`${RC.inv}/${R.friend.u}/${R.rid}.json`, { f: s.uid, n: s.name || 'Гравець', bet: R.bet, car: R.car, t: Date.now() });
+  else await rcPut(`${RC.q}/${R.bet}/${s.uid}.json`, { rid: R.rid, n: s.name || 'Гравець', car: R.car, t: Date.now() });
+}
+async function rcWaitTick() {
+  const r = R; if (!r || r.over || r.phase === 'run' || r.ticking) return; r.ticking = true;
+  try {
+    const sv = await (await fetch(`${RC.seat}/${r.rid}.json`)).json();
+    if (R !== r) return;
+    if (sv && sv.u && sv.u !== 'x') { clearInterval(r.wait); r.opp = { u: sv.u, n: String(sv.n || 'Гравець').slice(0, 20), car: sv.car };
+      fetch(r.friend ? `${RC.inv}/${r.friend.u}/${r.rid}.json` : `${RC.q}/${r.bet}/${s.uid}.json`, { method: 'DELETE' }); rcStart(sv.t); return; }
+    const age = Date.now() - r.posted;
+    if (r.friend) {
+      const inv = await (await fetch(`${RC.inv}/${r.friend.u}/${r.rid}.json`)).json();
+      if (!inv) { const c = await rcSeat(r.rid, { u: 'x' }); if (c.res === 'ok') { rcAbort(`${r.friend.n} відхилив виклик`); return; } }
+      else if (age > 90000) { const c = await rcSeat(r.rid, { u: 'x' }); if (c.res === 'ok') { fetch(`${RC.inv}/${r.friend.u}/${r.rid}.json`, { method: 'DELETE' }); rcAbort('Друг не відповів'); return; } }
+    } else {
+      if (age > 5000 && Math.floor(age / 1000) % 5 === 0) await rcPut(`${RC.q}/${r.bet}/${s.uid}.json`, { rid: r.rid, n: s.name || 'Гравець', car: r.car, t: Date.now() });
+      if (age > 45000) { const c = await rcSeat(r.rid, { u: 'x' }); if (c.res === 'ok') { fetch(`${RC.q}/${r.bet}/${s.uid}.json`, { method: 'DELETE' }); rcAbort('Суперника не знайдено. Ставку повернено'); return; } }
+      else if (age > 2500) {   // двоє шукають одночасно: той, у кого більший id, заходить до меншого
+        const all = await jget(`${RC.q}/${r.bet}.json`);
+        const o = Object.entries(all).find(([u, v]) => u < s.uid && v && v.rid && Date.now() - (v.t || 0) < 15000);
+        if (o) { const c = await rcSeat(r.rid, { u: 'x' });
+          if (c.res === 'ok') { fetch(`${RC.q}/${r.bet}/${s.uid}.json`, { method: 'DELETE' }); clearInterval(r.wait);
+            if (!(await rcTryJoin(o[0], o[1]))) { await rcPost(); r.wait = setInterval(rcWaitTick, 1000); } } }
+      }
+    }
+  } catch (e) {} finally { r.ticking = false; }
+}
+function rcAbort(msg) {
+  const r = R; if (r) { clearInterval(r.wait); clearInterval(r.poll); clearInterval(r.tick); r.over = true; }
+  R = null; rcRefund(); showToast(msg); rcView('setup'); rcDraw();
+}
+$('rc-go').onclick = () => rcGo();
+$('rc-cancel').onclick = async () => {
+  const r = R; if (!r || r.phase === 'run') return;
+  try {
+    const c = await rcSeat(r.rid, { u: 'x' });
+    if (c.res === 'ok') { clearInterval(r.wait); fetch(r.friend ? `${RC.inv}/${r.friend.u}/${r.rid}.json` : `${RC.q}/${r.bet}/${s.uid}.json`, { method: 'DELETE' }); rcAbort('Пошук скасовано, ставку повернено'); }
+    else showToast('Суперник уже знайшовся…');
+  } catch (e) { showToast('⚠️ Немає зв’язку'); }
+};
+// ----- сама гонка -----
+async function rcStart(t0) {
+  const r = R; r.phase = 'run'; r.t0 = Number(t0) || 0; r.sc = { me: 0, opp: 0 }; r.claims = {};
+  try { const a = Date.now(), pr = await rcPut(`${RC.ping}/${s.uid}.json`, { t: TS }), b = Date.now(); const j = await pr.json(); if (j && j.t) r.off = j.t - (a + (b - a) / 2); } catch (e) {}
+  if (!r.t0) r.t0 = Date.now() + r.off;
+  r.round = 1; r.showAt = r.t0 + 2500 + rcDelay(r.rid, 1) - r.off;
+  rcView('run'); rcLayout(); rcDrawRun();
+  r.poll = setInterval(rcPoll, 400); r.tick = setInterval(rcTick, 70);
+}
+function rcLayout() {
+  const box = $('rc-tracks'); box.innerHTML = '';
+  [['me', s.name || 'Ви', R.car], ['opp', R.opp.n, R.opp.car]].forEach(([k, n, car]) => {
+    const h = document.createElement('div'); h.className = 'rname'; const a = document.createElement('span'); a.textContent = (k === 'me' ? 'Ви: ' : '') + n; const b = document.createElement('span'); b.id = 'rs-' + k; b.textContent = '0/' + RC_WIN; h.append(a, b);
+    const t = document.createElement('div'); t.className = 'rtrack'; const c = document.createElement('div'); c.className = 'rcar'; c.id = 'rcar-' + k; const it = mkItem(car); if (it) setIcon(c, it, true); else c.textContent = '🚗'; t.appendChild(c);
+    box.append(h, t); });
+}
+function rcDrawRun() {
+  ['me', 'opp'].forEach(k => { $('rs-' + k).textContent = R.sc[k] + '/' + RC_WIN; $('rcar-' + k).style.left = `calc((100% - 54px) * ${R.sc[k] / RC_WIN})`; });
+}
+function rcTick() {
+  const r = R; if (!r || r.over) return; const now = Date.now();
+  const shown = now >= r.showAt; $('rc-target').textContent = shown ? rcTarget(r.rid, r.round) : '…';
+  $('rc-pad').classList.toggle('lock', now < r.lockUntil);
+  if (!shown && !r.msg) $('rc-status').textContent = 'Приготуйтесь…';
+}
+function rcSay(t) { if (R) { R.msg = t; $('rc-status').textContent = t; setTimeout(() => { if (R && R.msg === t) R.msg = ''; }, 900); } }
+function rcApply(claims) {
+  const r = R; if (!r || r.over) return;
+  r.claims = claims || {};
+  const nums = Object.keys(r.claims).filter(k => /^\d+$/.test(k)).map(Number).sort((a, b) => a - b);
+  const sc = { me: 0, opp: 0 }; nums.forEach(n => { const u = r.claims[n] && r.claims[n].u; if (u === s.uid) sc.me++; else if (u === r.opp.u) sc.opp++; });
+  r.sc = sc; const last = nums.length ? nums[nums.length - 1] : 0;
+  if (r.round !== last + 1) { r.round = last + 1; const base = last && r.claims[last].t ? r.claims[last].t : r.t0 + 2500; r.showAt = base + rcDelay(r.rid, r.round) - r.off; if (last) { const w = r.claims[last].u === s.uid; rcSay(w ? '✅ Ви першим! +1' : '⚡ Суперник був швидшим'); } }
+  rcDrawRun();
+  if (sc.me >= RC_WIN) rcFinish(true); else if (sc.opp >= RC_WIN) rcFinish(false); else if (r.claims['L_' + r.opp.u]) rcFinish(true, true);
+}
+async function rcPoll() {
+  const r = R; if (!r || r.over || r.polling) return; r.polling = true;
+  try { const c = await jget(`${RC.clm}/${r.rid}.json`); if (R === r) rcApply(c); } catch (e) {} finally { r.polling = false; }
+}
+async function rcPress(d) {
+  const r = R; if (!r || r.phase !== 'run' || r.over || r.busy) return; const now = Date.now();
+  if (now < r.lockUntil) return;
+  if (now < r.showAt) { r.lockUntil = now + 1200; rcSay('🚫 Фальстарт!'); vibrate(80); return; }
+  if (d !== rcTarget(r.rid, r.round)) { r.lockUntil = now + 900; rcSay('❌ Не те число'); vibrate(80); return; }
+  r.busy = true; const n = r.round;
+  try {
+    const res = await rcPut(`${RC.clm}/${r.rid}/${n}.json`, { u: s.uid, t: TS });
+    if (res.ok) { const j = await res.json(); const c = { ...r.claims, [n]: { u: s.uid, t: j.t } }; if (R === r) rcApply(c); vibrate(30); }
+    else await rcPoll();
+  } catch (e) {} finally { r.busy = false; }
+}
+function rcFinish(won, forfeit) {
+  const r = R; if (!r || r.over) return; r.over = true; clearInterval(r.poll); clearInterval(r.tick); clearInterval(r.wait);
+  s.racePend = null;
+  if (won) { s.score += r.bet * 2; vibrate([40, 40, 80]); }
+  save(); render();
+  $('rc-rico').textContent = won ? '🏆' : '😕';
+  $('rc-rtxt').textContent = won ? 'Ви перемогли!' : 'Ви програли';
+  $('rc-rsub').textContent = (won ? `Виграш: ${fmt(r.bet * 2)}` : `Ставку ${fmt(r.bet)} втрачено`) + (forfeit ? '\nСуперник вийшов з гонки' : '') + `\nРахунок ${r.sc.me}:${r.sc.opp}`;
+  rcView('res'); R = null;
+}
+$('rc-again').onclick = () => raceOpen(rcFriend, null);
+$('rc-x').addEventListener('click', async e => {
+  e.stopPropagation(); const r = R;
+  if (!r) { $('ov-race').classList.remove('open'); return; }
+  if (r.phase === 'run' && !r.over) {
+    if (!confirm('Вийти з гонки? Ставку буде втрачено.')) return;
+    try { await rcPut(`${RC.clm}/${r.rid}/L_${s.uid}.json`, { u: s.uid, t: TS }); } catch (e) {}
+    rcFinish(false); $('ov-race').classList.remove('open'); return;
+  }
+  showToast('Спершу натисніть «Скасувати»');   // під час пошуку закривати не можна
+});
+// Після збою: якщо гонка обірвалась, чесно закриваємо ставку
+async function rcRecover() {
+  const p = s.racePend; if (!p || R) return;
+  try {
+    if (!p.rid || Date.now() - p.t > 600000) { rcRefund(); return; }
+    const c = await jget(`${RC.clm}/${p.rid}.json`), sc = {}; Object.entries(c).forEach(([k, v]) => { if (/^\d+$/.test(k) && v) sc[v.u] = (sc[v.u] || 0) + 1; });
+    if ((sc[s.uid] || 0) >= RC_WIN) { s.racePend = null; s.score += p.bet * 2; save(); render(); showToast('🏆 Виграш за гонку зараховано'); }
+    else if (Object.values(sc).some(n => n >= RC_WIN)) { s.racePend = null; save(); }
+    else if (Date.now() - p.t > 180000) rcRefund();
+  } catch (e) {}
+}
+setTimeout(rcRecover, 2500);
 const gaSig = () => [s.owned.join(','), s.name, s.bizLvl, s.bizCap, s.mult, s.avatar, s.tag, s.stitle, Math.floor(s.total / 2000)].join('|');
 async function gaAdopt(cloud) {
   const oldUid = s.uid;
