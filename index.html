@@ -703,7 +703,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 93;
+const APP_VERSION = 94;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -1751,6 +1751,10 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 94, date: '20 листопада', title: 'Швидкі відповіді', items: [
+    '🔔 У сповіщеннях про запити в друзі, угоди та гонки тепер є кнопки «Прийняти» і «Відмовити»',
+    '🏁 Прийнявши виклик на гонку, ви одразу потрапляєте в гонку',
+  ]},
   { v: 93, date: '20 листопада', title: 'Гонка: окремі числа', items: [
     '🏎️ У гонці в кожного гравця тепер свої числа: якщо обидва натискають правильно, обидва просуваються вперед. Хто першим набере 10, той і виграв',
   ]},
@@ -2563,7 +2567,7 @@ async function frLoad() {
   } catch (e) {}
 }
 const frSeenGet = () => { try { return JSON.parse(localStorage.getItem('clicker_fr_seen') || 'null'); } catch (e) { return null; } };
-function frNotice(icon, title, sub, tab) {
+function frNotice(icon, title, sub, tab, acts) {
   soldNotice.kinds.add('social');
   const row = document.createElement('div'); row.className = 'chrow'; row.style.cursor = 'pointer';
   const ci = document.createElement('div'); ci.className = 'ci'; ci.textContent = icon;
@@ -2571,15 +2575,18 @@ function frNotice(icon, title, sub, tab) {
   const b = document.createElement('b'); b.textContent = title + ' ›';
   const sm = document.createElement('small'); sm.style.whiteSpace = 'pre-line'; sm.textContent = sub;
   row.onclick = () => { $('sold-ok').click(); frOpen(tab); };
-  cb.append(b, sm); row.append(ci, cb); $('sold-list').appendChild(row); soldTitle(); $('ov-sold').classList.add('open'); vibrate([30, 40, 60]);
+  cb.append(b, sm); row.append(ci, cb);
+  if (acts && acts.length) { row.style.flexWrap = 'wrap'; const ab = document.createElement('div'); ab.style.cssText = 'display:flex;gap:8px;flex:0 0 100%;padding-top:4px';
+    acts.forEach(([t, cls, fn]) => { const x = document.createElement('button'); x.className = 'frbtn ' + cls; x.style.flex = '1'; x.textContent = t;
+      x.onclick = e => { e.stopPropagation(); row.remove(); if (!$('sold-list').children.length) $('sold-ok').click(); fn(); }; ab.appendChild(x); }); row.appendChild(ab); } $('sold-list').appendChild(row); soldTitle(); $('ov-sold').classList.add('open'); vibrate([30, 40, 60]);
 }
 function frNotify() {
   let seen = frSeenGet(); const first = !seen; seen = seen || { k: [], f: [] };
   const known = new Set(seen.k), fk = new Set(seen.f); let any = false;
-  Object.entries(frIn).forEach(([u, v]) => { const k = 'q' + u; if (!known.has(k)) { known.add(k); any = true; frNotice('📩', String((v && v.n) || 'Гравець').slice(0, 20) + ' хоче дружити', 'Запит у друзі', 2); } });
-  Object.entries(rcInv).forEach(([rid, v]) => { const k = 'r' + rid; if (known.has(k)) return; known.add(k); any = true; frNotice('🏎️', String(v.n || 'Гравець').slice(0, 20) + ' кличе на гонку', 'Ставка ' + fmt(Number(v.bet)) + ', виграш ' + fmt(Number(v.bet) * 2), 1); });
+  Object.entries(frIn).forEach(([u, v]) => { const k = 'q' + u; if (!known.has(k)) { known.add(k); any = true; const n = String((v && v.n) || 'Гравець').slice(0, 20); frNotice('📩', n + ' хоче дружити', 'Запит у друзі', 2, [['Прийняти', '', () => frAccept(u, n)], ['Відмовити', 'no', () => frDecline(u)]]); } });
+  Object.entries(rcInv).forEach(([rid, v]) => { const k = 'r' + rid; if (known.has(k)) return; known.add(k); any = true; frNotice('🏎️', String(v.n || 'Гравець').slice(0, 20) + ' кличе на гонку', 'Ставка ' + fmt(Number(v.bet)) + ', виграш ' + fmt(Number(v.bet) * 2), 1, [['Прийняти', '', () => rcAcceptInv(rid, v)], ['Відмовити', 'no', () => rcDeclineInv(rid)]]); });
   Object.entries(frTr).forEach(([id, t]) => { const x = trClean(t); if (!x || t.o || known.has(id)) return; known.add(id); any = true;
-    frNotice('🤝', String(t.fn || 'Гравець').slice(0, 20) + ' пропонує угоду', trText(x, false), 3); });
+    frNotice('🤝', String(t.fn || 'Гравець').slice(0, 20) + ' пропонує угоду', trText(x, false), 3, [['Прийняти', '', () => trAccept(id, x)], ['Відмовити', 'no', () => trDecline(id, x)]]); });
   Object.entries(frList).forEach(([u, v]) => { if (!fk.has(u)) { fk.add(u); if (!first) { any = true; frNotice('👥', String((v && v.n) || 'Гравець').slice(0, 20) + ' тепер у ваших друзях', 'Можна писати й обмінюватись', 1); } } });
   try { localStorage.setItem('clicker_fr_seen', JSON.stringify({ k: [...known].slice(-200), f: [...fk] })); } catch (e) {}
 }
@@ -2612,7 +2619,7 @@ function frRender() {
     const L = Object.entries(frList).filter(([k, v]) => v && typeof v === 'object');
     $('fr-note').textContent = L.length ? '' : 'Друзів поки немає. Додайте за ID чи нікнеймом, або з профілю гравця (🏆 Лідери).';
     Object.entries(rcInv).forEach(([rid, v]) => { const n = String(v.n || 'Гравець').slice(0, 20);
-      row('🏎️', n + ' кличе на гонку', 'Ставка ' + fmt(Number(v.bet)) + ', виграш ' + fmt(Number(v.bet) * 2), [['✓', '', () => raceOpen(null, { rid, n, f: String(v.f), bet: Math.floor(Number(v.bet)), car: v.car })], ['✕', 'no', () => { fetch(`${LB_URL}/raceinv/${s.uid}/${rid}.json`, { method: 'DELETE' }); delete rcInv[rid]; frBadge(); frRender(); }]]); });
+      row('🏎️', n + ' кличе на гонку', 'Ставка ' + fmt(Number(v.bet)) + ', виграш ' + fmt(Number(v.bet) * 2), [['✓', '', () => rcAcceptInv(rid, v)], ['✕', 'no', () => { fetch(`${LB_URL}/raceinv/${s.uid}/${rid}.json`, { method: 'DELETE' }); delete rcInv[rid]; frBadge(); frRender(); }]]); });
     L.forEach(([u, v]) => { const n = String(v.n || 'Гравець').slice(0, 20);
       row('🙂', n, '', [['💬', '', () => frChat(u, n)], ['🤝', '', () => trOpen(u, n)], ['🏎️', '', () => raceOpen({ u, n })]], () => openPlayerByUid(u)); });
   } else if (frTab === 2) {
@@ -2982,6 +2989,14 @@ $('rc-x').addEventListener('click', async e => {
   }
   showToast('Спершу натисніть «Скасувати»');   // під час пошуку закривати не можна
 });
+function rcDeclineInv(rid) { fetch(`${LB_URL}/raceinv/${s.uid}/${rid}.json`, { method: 'DELETE' }); delete rcInv[rid]; frBadge(); if ($('ov-friends').classList.contains('open')) frRender(); }
+// Прийняти виклик: одразу заходимо в гонку
+function rcAcceptInv(rid, v) {
+  raceOpen(null, { rid, n: String(v.n || 'Гравець').slice(0, 20), f: String(v.f), bet: Math.floor(Number(v.bet)), car: v.car });
+  if (!rcCars().length) { showToast('У вас немає машин: купіть у магазині 🚗'); return; }
+  if (s.score < Math.floor(Number(v.bet))) { showToast('💸 Не вистачає грошей на ставку'); return; }
+  rcGo();
+}
 // Після збою: якщо гонка обірвалась, чесно закриваємо ставку
 async function rcRecover() {
   const p = s.racePend; if (!p || R) return;
