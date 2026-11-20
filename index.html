@@ -660,7 +660,7 @@
         <div class="chips" id="rc-chips"><button data-bet="5000">5K</button><button data-bet="10000">10K</button><button data-bet="50000">50K</button><button data-bet="100000">100K</button><button data-bet="1000000">1M</button></div>
         <div class="hint" id="rc-info" style="padding: 8px 0"></div>
         <button id="rc-go" class="sellbtn">🔎 Знайти суперника</button>
-        <div class="hint" style="padding: 10px 0">На екрані з'являється число від 1 до 10. Хто першим натисне це число, отримує очко. Перший до 10 очок перемагає. Помилка чи фальстарт блокують кнопки на секунду.</div>
+        <div class="hint" style="padding: 10px 0">На екрані з'являється число від 1 до 10 (у кожного гравця своє). Натисніть його, щоб отримати очко й перейти далі. Хто першим набере 10 очок, перемагає. Помилка чи фальстарт блокують кнопки на секунду.</div>
       </div>
       <div id="rc-wait" style="display: none; text-align: center; padding-top: 30px">
         <div style="font-size: 60px">🏎️</div>
@@ -703,7 +703,7 @@
 
 <script>
 // Версію збільшуйте при кожному оновленні
-const APP_VERSION = 92;
+const APP_VERSION = 93;
 
 /* ---------- Смайлики ---------- */
 function splitGraphemes(str) {
@@ -1751,6 +1751,9 @@ $('promo-input').addEventListener('keydown', e => { if (e.key === 'Enter') doPro
 /* ---------- Новини ---------- */
 // Нову версію додавайте ЗВЕРХУ списку. Номер версії = APP_VERSION.
 const NEWS = [
+  { v: 93, date: '20 листопада', title: 'Гонка: окремі числа', items: [
+    '🏎️ У гонці в кожного гравця тепер свої числа: якщо обидва натискають правильно, обидва просуваються вперед. Хто першим набере 10, той і виграв',
+  ]},
   { v: 92, date: '20 листопада', title: 'Гонки на машинах 🏎️', items: [
     '🏎️ Нова гра «Гонка 1 на 1»: розділ «Гра» → оберіть свою машину, ставку від $5,000 і знайдіть суперника (або киньте виклик другу)',
     '🔢 На екрані з\'являється число від 1 до 10: хто першим натисне його, отримує очко. Перший до 10 очок виграє і забирає подвійну ставку',
@@ -2792,8 +2795,8 @@ setInterval(frLoad, 20000); setTimeout(frLoad, 2000);
 const RC = { q: `${LB_URL}/raceq`, seat: `${LB_URL}/raceseat`, clm: `${LB_URL}/raceclaim`, inv: `${LB_URL}/raceinv`, ping: `${LB_URL}/raceping` };
 const RC_MIN = 5000, RC_WIN = 10, TS = { '.sv': 'timestamp' };
 let R = null, rcCar = null, rcFriend = null, rcInvite = null, rcInv = {};
-const rcTarget = (rid, n) => 1 + cyrb53(rid + '|' + n) % 10;
-const rcDelay = (rid, n) => 700 + cyrb53(rid + '|d' + n) % 1300;
+const rcTarget = (rid, u, n) => 1 + cyrb53(rid + '|' + u + '|' + n) % 10;   // у кожного гравця своя послідовність
+const rcDelay = (rid, u, n) => 600 + cyrb53(rid + '|d|' + u + '|' + n) % 1200;
 const rcParse = v => { v = String(v).toLowerCase().replace(/[\s,$]/g, ''); const m = v.match(/^(\d+(?:\.\d+)?)([kmкм]?)$/); if (!m) return 0; return Math.floor(Number(m[1]) * ({ k: 1e3, 'к': 1e3, m: 1e6, 'м': 1e6 }[m[2]] || 1)); };
 const rcView = n => ['setup', 'wait', 'run', 'res'].forEach(v => { $('rc-' + v).style.display = v === n ? '' : 'none'; });
 const rcPut = (u, b) => fetch(u, { method: 'PUT', headers: MK_HDR, body: JSON.stringify(b) });
@@ -2908,7 +2911,7 @@ async function rcStart(t0) {
   const r = R; r.phase = 'run'; r.t0 = Number(t0) || 0; r.sc = { me: 0, opp: 0 }; r.claims = {};
   try { const a = Date.now(), pr = await rcPut(`${RC.ping}/${s.uid}.json`, { t: TS }), b = Date.now(); const j = await pr.json(); if (j && j.t) r.off = j.t - (a + (b - a) / 2); } catch (e) {}
   if (!r.t0) r.t0 = Date.now() + r.off;
-  r.round = 1; r.showAt = r.t0 + 2500 + rcDelay(r.rid, 1) - r.off;
+  r.round = 1; r.showAt = r.t0 + 2500 + rcDelay(r.rid, s.uid, 1) - r.off;
   rcView('run'); rcLayout(); rcDrawRun();
   r.poll = setInterval(rcPoll, 400); r.tick = setInterval(rcTick, 70);
 }
@@ -2924,7 +2927,7 @@ function rcDrawRun() {
 }
 function rcTick() {
   const r = R; if (!r || r.over) return; const now = Date.now();
-  const shown = now >= r.showAt; $('rc-target').textContent = shown ? rcTarget(r.rid, r.round) : '…';
+  const shown = now >= r.showAt; $('rc-target').textContent = shown ? rcTarget(r.rid, s.uid, r.round) : '…';
   $('rc-pad').classList.toggle('lock', now < r.lockUntil);
   if (!shown && !r.msg) $('rc-status').textContent = 'Приготуйтесь…';
 }
@@ -2932,12 +2935,15 @@ function rcSay(t) { if (R) { R.msg = t; $('rc-status').textContent = t; setTimeo
 function rcApply(claims) {
   const r = R; if (!r || r.over) return;
   r.claims = claims || {};
-  const nums = Object.keys(r.claims).filter(k => /^\d+$/.test(k)).map(Number).sort((a, b) => a - b);
-  const sc = { me: 0, opp: 0 }; nums.forEach(n => { const u = r.claims[n] && r.claims[n].u; if (u === s.uid) sc.me++; else if (u === r.opp.u) sc.opp++; });
-  r.sc = sc; const last = nums.length ? nums[nums.length - 1] : 0;
-  if (r.round !== last + 1) { r.round = last + 1; const base = last && r.claims[last].t ? r.claims[last].t : r.t0 + 2500; r.showAt = base + rcDelay(r.rid, r.round) - r.off; if (last) { const w = r.claims[last].u === s.uid; rcSay(w ? '✅ Ви першим! +1' : '⚡ Суперник був швидшим'); } }
+  const mine = [], theirs = [];
+  Object.entries(r.claims).forEach(([k, v]) => { if (!k.startsWith('c_') || !v) return; if (v.u === s.uid) mine.push(Number(v.t) || 0); else if (v.u === r.opp.u) theirs.push(Number(v.t) || 0); });
+  r.sc = { me: mine.length, opp: theirs.length };
+  if (r.round !== mine.length + 1) { r.round = mine.length + 1; if (mine.length) r.showAt = Date.now() + rcDelay(r.rid, s.uid, r.round); }
   rcDrawRun();
-  if (sc.me >= RC_WIN) rcFinish(true); else if (sc.opp >= RC_WIN) rcFinish(false); else if (r.claims['L_' + r.opp.u]) rcFinish(true, true);
+  const m10 = mine.length >= RC_WIN ? mine.sort((x, y) => x - y)[RC_WIN - 1] : null, o10 = theirs.length >= RC_WIN ? theirs.sort((x, y) => x - y)[RC_WIN - 1] : null;
+  if (m10 !== null && (o10 === null || m10 < o10 || (m10 === o10 && s.uid < r.opp.u))) rcFinish(true);
+  else if (o10 !== null) rcFinish(false);
+  else if (r.claims['L_' + r.opp.u]) rcFinish(true, true);
 }
 async function rcPoll() {
   const r = R; if (!r || r.over || r.polling) return; r.polling = true;
@@ -2947,12 +2953,12 @@ async function rcPress(d) {
   const r = R; if (!r || r.phase !== 'run' || r.over || r.busy) return; const now = Date.now();
   if (now < r.lockUntil) return;
   if (now < r.showAt) { r.lockUntil = now + 1200; rcSay('🚫 Фальстарт!'); vibrate(80); return; }
-  if (d !== rcTarget(r.rid, r.round)) { r.lockUntil = now + 900; rcSay('❌ Не те число'); vibrate(80); return; }
+  if (d !== rcTarget(r.rid, s.uid, r.round)) { r.lockUntil = now + 900; rcSay('❌ Не те число'); vibrate(80); return; }
   r.busy = true; const n = r.round;
   try {
-    const res = await rcPut(`${RC.clm}/${r.rid}/${n}.json`, { u: s.uid, t: TS });
-    if (res.ok) { const j = await res.json(); const c = { ...r.claims, [n]: { u: s.uid, t: j.t } }; if (R === r) rcApply(c); vibrate(30); }
-    else await rcPoll();
+    const res = await rcPut(`${RC.clm}/${r.rid}/c_${s.uid}_${n}.json`, { u: s.uid, t: TS });
+    if (res.ok) { rcSay('✅ +1'); vibrate(30); }
+    const c = await jget(`${RC.clm}/${r.rid}.json`); if (R === r) rcApply(c);
   } catch (e) {} finally { r.busy = false; }
 }
 function rcFinish(won, forfeit) {
@@ -2981,7 +2987,7 @@ async function rcRecover() {
   const p = s.racePend; if (!p || R) return;
   try {
     if (!p.rid || Date.now() - p.t > 600000) { rcRefund(); return; }
-    const c = await jget(`${RC.clm}/${p.rid}.json`), sc = {}; Object.entries(c).forEach(([k, v]) => { if (/^\d+$/.test(k) && v) sc[v.u] = (sc[v.u] || 0) + 1; });
+    const c = await jget(`${RC.clm}/${p.rid}.json`), sc = {}; Object.entries(c).forEach(([k, v]) => { if (k.startsWith('c_') && v) sc[v.u] = (sc[v.u] || 0) + 1; });
     if ((sc[s.uid] || 0) >= RC_WIN) { s.racePend = null; s.score += p.bet * 2; save(); render(); showToast('🏆 Виграш за гонку зараховано'); }
     else if (Object.values(sc).some(n => n >= RC_WIN)) { s.racePend = null; save(); }
     else if (Date.now() - p.t > 180000) rcRefund();
